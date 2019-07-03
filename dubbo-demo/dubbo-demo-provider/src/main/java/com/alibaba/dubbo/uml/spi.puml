@@ -1,0 +1,50 @@
+@startuml
+
+interface ExtensionFactory {
+    <T> T getExtension(Class<T> type, String name)
+}
+
+class AdaptiveExtensionFactory implements ExtensionFactory {
+    - List<ExtensionFactory> factories
+    <T> T getExtension(Class<T> type, String name)
+}
+
+class SpiExtensionFactory implements ExtensionFactory {
+    <T> T getExtension(Class<T> type, String name)
+}
+
+class SpringExtensionFactory implements ExtensionFactory {
+    + static Set<ApplicationContext> contexts
+    <T> T getExtension(Class<T> type, String name)
+}
+
+AdaptiveExtensionFactory *-- SpiExtensionFactory
+AdaptiveExtensionFactory *-- SpringExtensionFactory
+
+
+
+
+
+class ExtensionLoader<T> {
+    -static ConcurrentMap<Class<?>, ExtensionLoader<?>> EXTENSION_LOADERS
+    -static ConcurrentMap<Class<?>, Object> EXTENSION_INSTANCES
+    -Holder<Map<String, Class<?>>> cachedClasses
+    -Map<String, Holder<Object>> cachedInstances
+    -Class<?> type
+    -ExtensionFactory objectFactory
+    +static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type)
+    +T getExtension(String name)
+    -T createExtension(String name)
+    -Map<String, Class<?>> getExtensionClasses()
+    -Map<String, Class<?>> loadExtensionClasses()
+    -void loadDirectory(Map<String, Class<?>> extensionClasses, String dir)
+    -void loadResource(Map<String, Class<?>> extensionClasses, ClassLoader classLoader, java.net.URL resourceURL)
+    -void loadClass(Map<String, Class<?>> extensionClasses, Class<?> clazz, String name)
+    +T getAdaptiveExtension()
+    -T createAdaptiveExtension()
+    -Class<?> getAdaptiveExtensionClass()
+    -Class<?> createAdaptiveExtensionClass()
+    -T injectExtension(T instance)
+}
+
+@enduml

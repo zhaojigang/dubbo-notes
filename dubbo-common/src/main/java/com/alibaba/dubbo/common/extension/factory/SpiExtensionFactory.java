@@ -27,6 +27,7 @@ public class SpiExtensionFactory implements ExtensionFactory {
 
     @Override
     public <T> T getExtension(Class<T> type, String name) {
+        // 如果type是接口并且有@SPI注解 && type的spi实现不为空，则返回 type 的适配实现类（一个spi接口至少有一个普通实现类，适配类起着工厂的作用）
         if (type.isInterface() && type.isAnnotationPresent(SPI.class)) {
             ExtensionLoader<T> loader = ExtensionLoader.getExtensionLoader(type);
             if (!loader.getSupportedExtensions().isEmpty()) {

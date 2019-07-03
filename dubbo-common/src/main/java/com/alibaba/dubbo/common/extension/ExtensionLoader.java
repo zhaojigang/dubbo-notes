@@ -60,37 +60,49 @@ public class ExtensionLoader<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ExtensionLoader.class);
 
+    /**
+     * 类变量，也可以做成一个 ExtensionLoaderFactory 来专门存储这些类变量
+     */
+
+    /** 存放SPI文件的三个目录,其中META-INF/services/也是jdk的SPI文件的存放目录 */
     private static final String SERVICES_DIRECTORY = "META-INF/services/";
-
     private static final String DUBBO_DIRECTORY = "META-INF/dubbo/";
-
-    private static final String DUBBO_INTERNAL_DIRECTORY = DUBBO_DIRECTORY + "internal/";
+    private static final String DUBBO_INTERNAL_DIRECTORY = DUBBO_DIRECTORY + "internal/"; //这个是最终jar包中存放spi文件的位置
 
     private static final Pattern NAME_SEPARATOR = Pattern.compile("\\s*[,]+\\s*");
 
+    /** key: SPI接口Class value: 该接口的ExtensionLoader */
     private static final ConcurrentMap<Class<?>, ExtensionLoader<?>> EXTENSION_LOADERS = new ConcurrentHashMap<Class<?>, ExtensionLoader<?>>();
-
+    /** key: SPI接口Class value: SPI实现类的对象实例 */
     private static final ConcurrentMap<Class<?>, Object> EXTENSION_INSTANCES = new ConcurrentHashMap<Class<?>, Object>();
 
-    // ==============================
+    /**
+     * 实例变量
+     */
 
+    /** SPI接口Class，eg. Protocol */
     private final Class<?> type;
-
+    /** SPI实现类对象实例的创建工厂 */
     private final ExtensionFactory objectFactory;
-
+    /** key: ExtensionClass的Class value: SPI实现类的key */
     private final ConcurrentMap<Class<?>, String> cachedNames = new ConcurrentHashMap<Class<?>, String>();
-
+    /** 存储 type 的所有普通实现类的 spi key-valueClass: Map<String, Class<?>> getExtensionClasses() */
     private final Holder<Map<String, Class<?>>> cachedClasses = new Holder<Map<String, Class<?>>>();
-
+    /** 如果类上有 @Activate 注解，则缓存到 Map<String, Activate> cachedActivates 中，key=spi key，value=注解 */
     private final Map<String, Activate> cachedActivates = new ConcurrentHashMap<String, Activate>();
+    /** 缓存创建好的extensionClass实例 */
     private final ConcurrentMap<String, Holder<Object>> cachedInstances = new ConcurrentHashMap<String, Holder<Object>>();
+    /** 缓存创建好的适配类实例 */
     private final Holder<Object> cachedAdaptiveInstance = new Holder<Object>();
+    /** 存储类上带有 @Adaptive 注解的Class，如果没有，则自动生成一个适配类 */
     private volatile Class<?> cachedAdaptiveClass = null;
+    /** 如果扩展接口（eg. Protocol）有 @SPI 注解，则获取其 @SPI.value 属性，如果存在，则缓存到 String cachedDefaultName 中 */
     private String cachedDefaultName;
+    /** 存储在创建适配类实例这个过程中发生的错误，后续该 type 下再调用创建适配类的时候，就直接抛错 */
     private volatile Throwable createAdaptiveInstanceError;
-
+    /** 存放具有一个type入参的构造器的实现类（wrapper类）的Class对象 */
     private Set<Class<?>> cachedWrapperClasses;
-
+    /** key :实现类的全类名  value: exception, 如果加载当前行失败，则存储在这里，防止真正的异常被吞掉 */
     private Map<String, IllegalStateException> exceptions = new ConcurrentHashMap<String, IllegalStateException>();
 
     private ExtensionLoader(Class<?> type) {
@@ -102,8 +114,12 @@ public class ExtensionLoader<T> {
         return type.isAnnotationPresent(SPI.class);
     }
 
+
     @SuppressWarnings("unchecked")
     public static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
+        /**
+         * 1. 校验入参type：非空 + 接口 + 含有@SPI注解
+         */
         if (type == null)
             throw new IllegalArgumentException("Extension type == null");
         if (!type.isInterface()) {
@@ -114,6 +130,9 @@ public class ExtensionLoader<T> {
                     ") is not extension, because WITHOUT @" + SPI.class.getSimpleName() + " Annotation!");
         }
 
+        /**
+         * 2. 根据type接口从全局缓存EXTENSION_LOADERS中获取ExtensionLoader,如果有直接返回;如果没有,则先创建,之后放入缓存,最后返回
+         */
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
@@ -184,7 +203,9 @@ public class ExtensionLoader<T> {
     public List<T> getActivateExtension(URL url, String[] values, String group) {
         List<T> exts = new ArrayList<T>();
         List<String> names = values == null ? new ArrayList<String>(0) : Arrays.asList(values);
+        // 如果不包含"-default"，
         if (!names.contains(Constants.REMOVE_VALUE_PREFIX + Constants.DEFAULT_KEY)) {
+            // 1. 加载三个 spi 目录下的 Class<?> type（eg. Protocol） 指定的 spi 接口的所有适配类、包装类和普通实现类，进而初始化各个缓存项
             getExtensionClasses();
             for (Map.Entry<String, Activate> entry : cachedActivates.entrySet()) {
                 String name = entry.getKey();
@@ -286,16 +307,19 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Find the extension with the given name. If the specified name is not found, then {@link IllegalStateException}
-     * will be thrown.
+     * 根据传入的 spi key，创建对应 key 的 extension 的实例，
+     * 并且将 <spi-key, 创建好的extension实例> 存储到 Map<String, Holder<Object>> cachedInstances 中
      */
     @SuppressWarnings("unchecked")
     public T getExtension(String name) {
-        if (name == null || name.length() == 0)
+        if (name == null || name.length() == 0) {
             throw new IllegalArgumentException("Extension name == null");
+        }
+        // 创建 @SPI.value 的 extension 的实例
         if ("true".equals(name)) {
             return getDefaultExtension();
         }
+        // 存储到 Map<String, Holder<Object>> cachedInstances 中
         Holder<Object> holder = cachedInstances.get(name);
         if (holder == null) {
             cachedInstances.putIfAbsent(name, new Holder<Object>());
@@ -351,35 +375,38 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Register new extension via API
-     *
-     * @param name  extension name
-     * @param clazz extension class
+     * 手动注册一个 type 的 spi 实现 name=clazz 加入到 spi 实现集合中
      * @throws IllegalStateException when extension with the same name has already been registered.
      */
     public void addExtension(String name, Class<?> clazz) {
+        // 1. 加载三个 spi 目录下的 Class<?> type（eg. Protocol） 指定的 spi 接口的所有适配类、包装类和普通实现类，进而初始化各个缓存项
         getExtensionClasses(); // load classes
 
+        // 2. 校验 clazz 是 type 子类
         if (!type.isAssignableFrom(clazz)) {
             throw new IllegalStateException("Input type " +
                     clazz + "not implement Extension " + type);
         }
+        // 校验 clazz 不是接口
         if (clazz.isInterface()) {
             throw new IllegalStateException("Input type " +
                     clazz + "can not be interface!");
         }
 
+        // 如果 clazz 不是适配类
         if (!clazz.isAnnotationPresent(Adaptive.class)) {
             if (StringUtils.isBlank(name)) {
                 throw new IllegalStateException("Extension name is blank (Extension " + type + ")!");
             }
+            // when extension with the same name has already been registered
             if (cachedClasses.get().containsKey(name)) {
                 throw new IllegalStateException("Extension name " +
                         name + " already existed(Extension " + type + ")!");
             }
-
+            // 添加到缓存中
             cachedNames.put(clazz, name);
             cachedClasses.get().put(name, clazz);
+        // 如果 class 是适配类，每一个 spi type 都仅有一个适配类，如果此时 type 还没有适配类，则缓存起来；否则，抛错
         } else {
             if (cachedAdaptiveClass != null) {
                 throw new IllegalStateException("Adaptive Extension already existed(Extension " + type + ")!");
@@ -441,9 +468,12 @@ public class ExtensionLoader<T> {
                     instance = cachedAdaptiveInstance.get();
                     if (instance == null) {
                         try {
+                            // 创建 适配类 实例
                             instance = createAdaptiveExtension();
+                            // 将适配类实例缓存到 Holder<Object> cachedAdaptiveInstance 中
                             cachedAdaptiveInstance.set(instance);
                         } catch (Throwable t) {
+                            // 如果创建适配类失败，存储到 Throwable createAdaptiveInstanceError 缓存中
                             createAdaptiveInstanceError = t;
                             throw new IllegalStateException("fail to create adaptive instance: " + t.toString(), t);
                         }
@@ -484,17 +514,22 @@ public class ExtensionLoader<T> {
 
     @SuppressWarnings("unchecked")
     private T createExtension(String name) {
+        // 从普通 spi 实现类map中获取传入的spi-key的实现类，例如 DubboProtocol.class
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {
+            // 如果没找到，抛出加载 spi 实现类时出现的异常
             throw findException(name);
         }
         try {
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
+                // 创建 DubboProtocol 实例（这里可以看出，要求 spi 实现类必须具有无参构造器），放到缓存中 Map<Class<?>, Object> EXTENSION_INSTANCES
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
+            // ioc
             injectExtension(instance);
+            // aop
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
             if (wrapperClasses != null && !wrapperClasses.isEmpty()) {
                 for (Class<?> wrapperClass : wrapperClasses) {
@@ -508,6 +543,16 @@ public class ExtensionLoader<T> {
         }
     }
 
+    /**
+     * ioc 有效的前提: objectFactory != null
+     * 遍历当前的实现类（eg. DubboProtocol）中的每一个方法：
+     * 1. 对于方法是 setXxx + public修饰符 + setXxx入参只有一个的方法，进行如下操作：
+     * 1.1 如果该 setXxx 方法有 @DisableInject 注解，则进行下一个方法的处理，否则
+     * 1.2 获取 setXxx 入参类型 pt + 获取入参属性名 property，
+     *     之后使用 AdaptiveExtensionFactory.getExtension(pt, property) 来获取被注入的实例
+     * 1.3 调用 setXxx 将被注入的实例设置到当前的实现类中，实现 ioc
+     *
+     */
     private T injectExtension(T instance) {
         try {
             if (objectFactory != null) {
@@ -521,11 +566,15 @@ public class ExtensionLoader<T> {
                         if (method.getAnnotation(DisableInject.class) != null) {
                             continue;
                         }
+                        // 获取setXxx入参类型
                         Class<?> pt = method.getParameterTypes()[0];
                         try {
+                            // 获取入参属性名 setName => name
                             String property = method.getName().length() > 3 ? method.getName().substring(3, 4).toLowerCase() + method.getName().substring(4) : "";
+                            // 使用 AdaptiveExtensionFactory.getExtension(pt, property) 来获取被注入的实例
                             Object object = objectFactory.getExtension(pt, property);
                             if (object != null) {
+                                // 调用 setXxx 将被注入的实例设置到当前的实现类中，实现 ioc
                                 method.invoke(instance, object);
                             }
                         } catch (Exception e) {
@@ -552,6 +601,20 @@ public class ExtensionLoader<T> {
         return clazz;
     }
 
+    /**
+     * 加载三个 spi 目录下的 Class<?> type（eg. Protocol） 指定的 spi 接口的所有适配类、包装类和普通实现类，进而初始化各个缓存项
+     * 1. Holder<Map<String, Class<?>>> cachedClasses，存储 type 的所有普通实现类的 spi key-valueClass
+     * 2. 如果扩展接口（eg. Protocol）有 @SPI 注解，则获取其 @SPI.value 属性，如果存在，则缓存到 String cachedDefaultName 中
+     * 3. 之后依次加载三个 spi 目录下的所有 type spi 文件，读取文件中的每一行：
+     *  3.1 如果类上有 @Adaptive 注解，则缓存到 Class<?> cachedAdaptiveClass 中
+     *  3.2 如果类是 wrapper 类，则缓存到 Set<Class<?>> cachedWrapperClasses 中
+     *  3.3 如果类是普通实现类，
+     *      检测实现类必须有无参构造器，（在 T createExtension(String name) 处会调用无参构造器实例化）
+     *      如果类上有 @Activate 注解，则缓存到 Map<String, Activate> cachedActivates 中，key=spi key，value=注解；
+     *      存储 spi key 到 Map<Class<?>, String> cachedNames；
+     *      将当前的 spi 实现类的 key-value 存储到 Holder<Map<String, Class<?>>> cachedClasses
+     *  3.4 如果加载当前行失败，则存储在 Map<String, IllegalStateException> exceptions 中，key :实现类的全类名 value: exception，防止真正的异常被吞掉
+     */
     private Map<String, Class<?>> getExtensionClasses() {
         Map<String, Class<?>> classes = cachedClasses.get();
         if (classes == null) {
@@ -568,6 +631,7 @@ public class ExtensionLoader<T> {
 
     // synchronized in getExtensionClasses
     private Map<String, Class<?>> loadExtensionClasses() {
+        // 获取扩展接口（eg. Protocol）的 @SPI 注解（SPI接口必须有该注解），则获取其 @SPI.value 属性，如果存在，则缓存到 String cachedDefaultName 中
         final SPI defaultAnnotation = type.getAnnotation(SPI.class);
         if (defaultAnnotation != null) {
             String value = defaultAnnotation.value();
@@ -591,6 +655,7 @@ public class ExtensionLoader<T> {
     private void loadDirectory(Map<String, Class<?>> extensionClasses, String dir) {
         String fileName = dir + type.getName();
         try {
+            // 同一个名称的文件可能存在于多个 jar 包中
             Enumeration<java.net.URL> urls;
             ClassLoader classLoader = findClassLoader();
             if (classLoader != null) {
@@ -600,6 +665,7 @@ public class ExtensionLoader<T> {
             }
             if (urls != null) {
                 while (urls.hasMoreElements()) {
+                    // 每一个 url 是一个文件
                     java.net.URL resourceURL = urls.nextElement();
                     loadResource(extensionClasses, classLoader, resourceURL);
                 }
@@ -610,12 +676,18 @@ public class ExtensionLoader<T> {
         }
     }
 
+    /**
+     * 加载一个文件
+     */
     private void loadResource(Map<String, Class<?>> extensionClasses, ClassLoader classLoader, java.net.URL resourceURL) {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(resourceURL.openStream(), "utf-8"));
             try {
+                // 每一行是一个 spi 扩展实现
                 String line;
+                // 读取每一行
                 while ((line = reader.readLine()) != null) {
+                    // 去除注释 key=value #xxx
                     final int ci = line.indexOf('#');
                     if (ci >= 0) line = line.substring(0, ci);
                     line = line.trim();
@@ -624,14 +696,18 @@ public class ExtensionLoader<T> {
                             String name = null;
                             int i = line.indexOf('=');
                             if (i > 0) {
+                                // 获取 spi key
                                 name = line.substring(0, i).trim();
+                                // 获取 spi 实现类
                                 line = line.substring(i + 1).trim();
                             }
                             if (line.length() > 0) {
+                                // 加载一个类
                                 loadClass(extensionClasses, resourceURL, Class.forName(line, true, classLoader), name);
                             }
                         } catch (Throwable t) {
                             IllegalStateException e = new IllegalStateException("Failed to load extension class(interface: " + type + ", class line: " + line + ") in " + resourceURL + ", cause: " + t.getMessage(), t);
+                            // 加载失败，存储失败信息
                             exceptions.put(line, e);
                         }
                     }
@@ -651,6 +727,7 @@ public class ExtensionLoader<T> {
                     type + ", class line: " + clazz.getName() + "), class "
                     + clazz.getName() + "is not subtype of interface.");
         }
+        // 如果类上有 @Adaptive 注解，则缓存到 Class<?> cachedAdaptiveClass 中
         if (clazz.isAnnotationPresent(Adaptive.class)) {
             if (cachedAdaptiveClass == null) {
                 cachedAdaptiveClass = clazz;
@@ -659,6 +736,7 @@ public class ExtensionLoader<T> {
                         + cachedAdaptiveClass.getClass().getName()
                         + ", " + clazz.getClass().getName());
             }
+        // 如果类是 wrapper 类，则缓存到 Set<Class<?>> cachedWrapperClasses 中
         } else if (isWrapperClass(clazz)) {
             Set<Class<?>> wrappers = cachedWrapperClasses;
             if (wrappers == null) {
@@ -666,7 +744,9 @@ public class ExtensionLoader<T> {
                 wrappers = cachedWrapperClasses;
             }
             wrappers.add(clazz);
+        // 正常类
         } else {
+            // 检测必须有无参构造器
             clazz.getConstructor();
             if (name == null || name.length() == 0) {
                 name = findAnnotationName(clazz);
@@ -676,14 +756,19 @@ public class ExtensionLoader<T> {
             }
             String[] names = NAME_SEPARATOR.split(name);
             if (names != null && names.length > 0) {
+                // 如果类上有 @Activate 注解，则缓存到 Map<String, Activate> cachedActivates 中，key=spi key，value=注解
                 Activate activate = clazz.getAnnotation(Activate.class);
                 if (activate != null) {
                     cachedActivates.put(names[0], activate);
                 }
+
                 for (String n : names) {
+                    // 存储 spi key 到 Map<Class<?>, String> cachedNames
                     if (!cachedNames.containsKey(clazz)) {
                         cachedNames.put(clazz, n);
                     }
+                    // 将 spi 的 key-value 存储到 Map<String, Class<?>> extensionClasses 中，
+                    // 实际上该 extensionClasses 会在最外层 getExtensionClasses() 处存储到 Holder<Map<String, Class<?>>> cachedClasses 中
                     Class<?> c = extensionClasses.get(n);
                     if (c == null) {
                         extensionClasses.put(n, clazz);
@@ -727,7 +812,9 @@ public class ExtensionLoader<T> {
     }
 
     private Class<?> getAdaptiveExtensionClass() {
+        // 1. 加载三个 spi 目录下的 Class<?> type（eg. Protocol） 指定的 spi 接口的所有适配类、包装类和普通实现类，进而初始化各个缓存项
         getExtensionClasses();
+        // 2. 如果存在类上具有 @@Adaptive 注解的Class，则直接返回，否则创建一个 AdaptiveExtensionClass
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
@@ -735,9 +822,12 @@ public class ExtensionLoader<T> {
     }
 
     private Class<?> createAdaptiveExtensionClass() {
+        // 1. 拼接 AdaptiveExtensionClass 类代码
         String code = createAdaptiveExtensionClassCode();
         ClassLoader classLoader = findClassLoader();
+        // 2. 获取编译器
         com.alibaba.dubbo.common.compiler.Compiler compiler = ExtensionLoader.getExtensionLoader(com.alibaba.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
+        // 3. 使用编译器编译 AdaptiveExtensionClass 类代码
         return compiler.compile(code, classLoader);
     }
 
