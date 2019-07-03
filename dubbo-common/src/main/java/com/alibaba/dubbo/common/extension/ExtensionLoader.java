@@ -104,8 +104,9 @@ public class ExtensionLoader<T> {
 
     @SuppressWarnings("unchecked")
     public static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
-        if (type == null)
+        if (type == null) {
             throw new IllegalArgumentException("Extension type == null");
+        }
         if (!type.isInterface()) {
             throw new IllegalArgumentException("Extension type(" + type + ") is not interface!");
         }
