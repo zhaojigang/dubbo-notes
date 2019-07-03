@@ -30,6 +30,10 @@ import java.util.List;
 @Adaptive
 public class AdaptiveExtensionFactory implements ExtensionFactory {
 
+    /**
+     * factories = [SpiExtensionFactory, SpringExtensionFactory]
+     * 也就是说 dubbo 的 ioc 可以注入 "spi适配类" 和 "spring bean"
+     */
     private final List<ExtensionFactory> factories;
 
     public AdaptiveExtensionFactory() {

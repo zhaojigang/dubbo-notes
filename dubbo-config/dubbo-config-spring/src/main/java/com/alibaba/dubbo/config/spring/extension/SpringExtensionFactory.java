@@ -42,6 +42,11 @@ public class SpringExtensionFactory implements ExtensionFactory {
 
     private static final ApplicationListener shutdownHookListener = new ShutdownHookListener();
 
+    /**
+     * 调用点：
+     * 1. ServiceBean<T> implements ApplicationContextAware
+     * 2. ReferenceBean<T> implements ApplicationContextAware
+     */
     public static void addApplicationContext(ApplicationContext context) {
         contexts.add(context);
         BeanFactoryUtils.addApplicationListener(context, shutdownHookListener);
@@ -60,9 +65,15 @@ public class SpringExtensionFactory implements ExtensionFactory {
         contexts.clear();
     }
 
+    /**
+     * 首先查找，如果没有则创建 bean
+     * 1. 遍历 Set<ApplicationContext>，如果包含 name 的 bean，则直接获取该 bean，判断该 bean 属于 type，则直接返回；否则，
+     * 2. 上述没有查找到，则直接遍历 Set<ApplicationContext>，调用 ctx.getBean(name) 来创建 bean
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <T> T getExtension(Class<T> type, String name) {
+        // 1. 首先查找
         for (ApplicationContext context : contexts) {
             if (context.containsBean(name)) {
                 Object bean = context.getBean(name);
@@ -78,6 +89,7 @@ public class SpringExtensionFactory implements ExtensionFactory {
             return null;
         }
 
+        // 2. 进行创建
         for (ApplicationContext context : contexts) {
             try {
                 return context.getBean(type);
