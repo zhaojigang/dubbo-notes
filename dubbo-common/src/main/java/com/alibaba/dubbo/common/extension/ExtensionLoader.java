@@ -119,8 +119,9 @@ public class ExtensionLoader<T> {
         /**
          * 1. 校验入参type：非空 + 接口 + 含有@SPI注解
          */
-        if (type == null)
+        if (type == null) {
             throw new IllegalArgumentException("Extension type == null");
+        }
         if (!type.isInterface()) {
             throw new IllegalArgumentException("Extension type(" + type + ") is not interface!");
         }
