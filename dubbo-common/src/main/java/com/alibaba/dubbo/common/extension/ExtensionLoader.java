@@ -79,7 +79,6 @@ public class ExtensionLoader<T> {
     /**
      * 实例变量
      */
-
     /** SPI接口Class，eg. Protocol */
     private final Class<?> type;
     /** SPI实现类对象实例的创建工厂 */
@@ -192,7 +191,20 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Get activate extensions.
+     * 激活点的逻辑较为复杂，这里标注出最常用的流程，其他细节点见代码注释
+     * 1. 首先获取除了传入的 spiKey 集合（values）指定的 spi 激活点实现类（称为 default 激活点），之后对 default 激活点进行排序
+     *    加载 default 激活点的规则：
+     *    1.1 匹配 group
+     *    - 如果接口传入的 group 参数为 null 或者 length==0，表示不限制 group
+     *    - 查看当前的 @Activate 注解中的参数 groups 是否包含传入的限制参数 group
+     *    1.2 匹配 value
+     *    - 传入的 spi key 集合（names）不包含（-name）：也就是说配置 -name 可以排除掉某个实现类
+     *    - 如果 @Activate 注解没有 value() 属性，则认为默认是加载的，直接返回 true
+     *    - 如果 @Activate 注解有 value() 属性，遍历每一个元素，
+     *      如果 url.getParameters() 中的参数名包含了其中任意一个元素（也就是说String[] value() 中的任一值出现在当前传入的 URL#parameters() 中的一个参数名）
+     * 2. 之后获取传入的 spiKey 集合（values）指定的 spi 激活点实现类（称为 usr 激活点）
+     *    加载 usr 激活点的规则见代码注释
+     * 3. 将 default 激活点集合和 usr 激活点集合放到一个集合中，default 在前，usr 在后
      *
      * @param url    url
      * @param values extension point names
@@ -201,6 +213,7 @@ public class ExtensionLoader<T> {
      * @see com.alibaba.dubbo.common.extension.Activate
      */
     public List<T> getActivateExtension(URL url, String[] values, String group) {
+        // 只加载 names 之外的 spi 实现（或者称为 default 实现） + 最后将 names 指定的 spi 实现集合（usrs）也加入到了 exts 中
         List<T> exts = new ArrayList<T>();
         List<String> names = values == null ? new ArrayList<String>(0) : Arrays.asList(values);
         // 如果不包含"-default"，
@@ -208,24 +221,47 @@ public class ExtensionLoader<T> {
             // 1. 加载三个 spi 目录下的 Class<?> type（eg. Protocol） 指定的 spi 接口的所有适配类、包装类和普通实现类，进而初始化各个缓存项
             getExtensionClasses();
             for (Map.Entry<String, Activate> entry : cachedActivates.entrySet()) {
-                String name = entry.getKey();
-                Activate activate = entry.getValue();
+                String name = entry.getKey(); // spi Key
+                Activate activate = entry.getValue(); // 对应的注解
+
+                /**
+                 * 匹配 group，两条规则：|| 关系
+                 * 1. 如果接口传入的 group 参数为 null 或者 length==0，表示不限制 group
+                 * 2. 查看当前的 @Activate 注解中的参数 groups 是否包含传入的限制参数 group
+                 */
                 if (isMatchGroup(group, activate.group())) {
+                    // 如果 group 匹配，则创建相应的 SPI 实现类
                     T ext = getExtension(name);
+                    /**
+                     * 匹配 value，三条规则：&& 关系
+                     * 1. 如果传入的 spi key 集合（names）不包含当前遍历的 spi 实现（spi-key=name）：也就是说这个 for 循环只加载 names 之外的 spi 实现，names 指定的在 usrs 中加载
+                     * 2. 传入的 spi key 集合（names）不包含（-name）：也就是说配置 -name 可以排除掉某个实现类
+                     * 3. 判断是否激活当前的 spi：|| 关系
+                     *    - 如果 @Activate 注解没有 value() 属性，则认为默认是加载的，直接返回 true
+                     *    - 如果 @Activate 注解有 value() 属性，遍历每一个元素，
+                     *      如果 （url.getParameters() 中的参数名包含了其中任意一个元素 || url.getParameters() 中的参数名是以 ".任一元素" 结尾）
+                     *      && url 中的对应的参数名的参数值不为空
+                     */
                     if (!names.contains(name)
                             && !names.contains(Constants.REMOVE_VALUE_PREFIX + name)
                             && isActive(activate, url)) {
+                        // 添加到附加列表中
                         exts.add(ext);
                     }
                 }
             }
+            // 对默认 spi 激活扩展进行排序
             Collections.sort(exts, ActivateComparator.COMPARATOR);
         }
+        // 只加载 names 指定的 spi 实现
         List<T> usrs = new ArrayList<T>();
         for (int i = 0; i < names.size(); i++) {
             String name = names.get(i);
+            // 如果传入的是 name 以 - 开头 || 传入的 names 包含 -name，则不加载该激活点
             if (!name.startsWith(Constants.REMOVE_VALUE_PREFIX)
                     && !names.contains(Constants.REMOVE_VALUE_PREFIX + name)) {
+                // 如果传入的 name 的名字是 default，则将之前所加载的 usrs 扩展点放到 exts 的最前边；
+                // 否则，创建扩展点，将扩展点加入到 usrs 中
                 if (Constants.DEFAULT_KEY.equals(name)) {
                     if (!usrs.isEmpty()) {
                         exts.addAll(0, usrs);
@@ -237,13 +273,20 @@ public class ExtensionLoader<T> {
                 }
             }
         }
+        // 由于使用了 List，所以 usrs 放在了 exts 之后
         if (!usrs.isEmpty()) {
             exts.addAll(usrs);
         }
         return exts;
     }
 
+    /**
+     * 查看当前的 @Activate 注解中的参数 groups 是否包含传入的限制参数 group
+     * @param group  传入的限制参数
+     * @param groups @Activate 注解中的参数
+     */
     private boolean isMatchGroup(String group, String[] groups) {
+        // 如果传入的 group 参数为 null 或者 length==0，表示不限制 group
         if (group == null || group.length() == 0) {
             return true;
         }
@@ -258,15 +301,19 @@ public class ExtensionLoader<T> {
     }
 
     private boolean isActive(Activate activate, URL url) {
+        // 如果 @Activate 注解没有 value() 属性，则认为默认是加载的，直接返回 true
         String[] keys = activate.value();
         if (keys.length == 0) {
             return true;
         }
+        // 如果 @Activate 注解有 value() 属性，遍历每一个元素，
+        // 如果 （url.getParameters() 中的参数名包含了其中任意一个元素 || url.getParameters() 中的参数名是以 ".任一元素" 结尾）
+        // && url 中的对应的参数名的参数值不为空
         for (String key : keys) {
             for (Map.Entry<String, String> entry : url.getParameters().entrySet()) {
                 String k = entry.getKey();
                 String v = entry.getValue();
-                if ((k.equals(key) || k.endsWith("." + key))
+                if ((k.equals(key) || k.endsWith("." + key)) // url.getParameters() 中包含了其中任意一个元素
                         && ConfigUtils.isNotEmpty(v)) {
                     return true;
                 }

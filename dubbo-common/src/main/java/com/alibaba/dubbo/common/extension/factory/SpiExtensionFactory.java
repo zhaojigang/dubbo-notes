@@ -25,6 +25,9 @@ import com.alibaba.dubbo.common.extension.SPI;
  */
 public class SpiExtensionFactory implements ExtensionFactory {
 
+    /**
+     * 注意：因为这里只是返回适配类，所以 name 属性是没用的
+     */
     @Override
     public <T> T getExtension(Class<T> type, String name) {
         // 如果type是接口并且有@SPI注解 && type的spi实现不为空，则返回 type 的适配实现类（一个spi接口至少有一个普通实现类，适配类起着工厂的作用）

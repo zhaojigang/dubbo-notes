@@ -28,12 +28,17 @@ import java.lang.annotation.Target;
  * Activate. This annotation is useful for automatically activate certain extensions with the given criteria,
  * for examples: <code>@Activate</code> can be used to load certain <code>Filter</code> extension when there are
  * multiple implementations.
+ *
+ * 激活点。该注解用于根据已有的条件来自动激活满足条件的多个扩展实现类。
+ * eg. @Activate 可以被用于加载多个 Filter 扩展实现类。
+ *
  * <ol>
- * <li>{@link Activate#group()} specifies group criteria. Framework SPI defines the valid group values.
- * <li>{@link Activate#value()} specifies parameter key in {@link URL} criteria.
+ * <li>{@link Activate#group()} specifies group criteria. Framework SPI defines the valid group values. group()指定组条件
+ * <li>{@link Activate#value()} specifies parameter key in {@link URL} criteria. value()指定参数条件
  * </ol>
  * SPI provider can call {@link ExtensionLoader#getActivateExtension(URL, String, String)} to find out all activated
  * extensions with the given criteria.
+ * SPI 服务发现者可以通过调用 {@link ExtensionLoader#getActivateExtension(URL, String, String)} 来找出所有满足给定条件的的激活扩展实现类。
  *
  * @see SPI
  * @see URL
@@ -44,6 +49,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface Activate {
     /**
+     * 当 String[] group() 包含当前传入的 group，则该条件满足，进行其他条件的判断。
      * Activate the current extension when one of the groups matches. The group passed into
      * {@link ExtensionLoader#getActivateExtension(URL, String, String)} will be used for matching.
      *
@@ -53,6 +59,7 @@ public @interface Activate {
     String[] group() default {};
 
     /**
+     * 当 String[] value() 中的任一值出现在当前传入的 URL#parameters() 中的一个参数名
      * Activate the current extension when the specified keys appear in the URL's parameters.
      * <p>
      * For example, given <code>@Activate("cache, validation")</code>, the current extension will be return only when
@@ -66,6 +73,7 @@ public @interface Activate {
     String[] value() default {};
 
     /**
+     * String[] before() 指定当前的 SPI 扩展实现类需要放在哪些扩展实现类之前
      * Relative ordering info, optional
      *
      * @return extension list which should be put before the current one
@@ -73,6 +81,7 @@ public @interface Activate {
     String[] before() default {};
 
     /**
+     * String[] after() 指定当前的 SPI 扩展实现类需要放在哪些扩展实现类之后
      * Relative ordering info, optional
      *
      * @return extension list which should be put after the current one
@@ -80,6 +89,7 @@ public @interface Activate {
     String[] after() default {};
 
     /**
+     * 指定绝对的顺序 order，order 越小，越靠前
      * Absolute ordering info, optional
      *
      * @return absolute ordering info
