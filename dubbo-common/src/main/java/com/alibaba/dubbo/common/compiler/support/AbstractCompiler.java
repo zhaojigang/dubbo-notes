@@ -34,28 +34,35 @@ public abstract class AbstractCompiler implements Compiler {
     @Override
     public Class<?> compile(String code, ClassLoader classLoader) {
         code = code.trim();
+        // 1. 匹配 package
         Matcher matcher = PACKAGE_PATTERN.matcher(code);
+        // 包名
         String pkg;
         if (matcher.find()) {
             pkg = matcher.group(1);
         } else {
             pkg = "";
         }
+        // 2. 匹配 class
         matcher = CLASS_PATTERN.matcher(code);
+        // 类名
         String cls;
         if (matcher.find()) {
             cls = matcher.group(1);
         } else {
             throw new IllegalArgumentException("No such class name in " + code);
         }
+        // 全类名
         String className = pkg != null && pkg.length() > 0 ? pkg + "." + cls : cls;
         try {
+            // 直接加载，如果成功，则直接返回
             return Class.forName(className, true, ClassHelper.getCallerClassLoader(getClass()));
         } catch (ClassNotFoundException e) {
             if (!code.endsWith("}")) {
                 throw new IllegalStateException("The java code not endsWith \"}\", code: \n" + code + "\n");
             }
             try {
+                // 如果没有找到类，直接使用子类进行编译
                 return doCompile(className, code);
             } catch (RuntimeException t) {
                 throw t;
@@ -66,5 +73,4 @@ public abstract class AbstractCompiler implements Compiler {
     }
 
     protected abstract Class<?> doCompile(String name, String source) throws Throwable;
-
 }

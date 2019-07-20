@@ -47,12 +47,22 @@ public class JavassistCompiler extends AbstractCompiler {
 
     private static final Pattern FIELD_PATTERN = Pattern.compile("[^\n]+=[^\n]+;");
 
+    /**
+     *
+     * @param name  全类名
+     * @param source  源码
+     * @return
+     * @throws Throwable
+     */
     @Override
     public Class<?> doCompile(String name, String source) throws Throwable {
         int i = name.lastIndexOf('.');
         String className = i < 0 ? name : name.substring(i + 1);
         ClassPool pool = new ClassPool(true);
         pool.appendClassPath(new LoaderClassPath(ClassHelper.getCallerClassLoader(getClass())));
+        /**
+         * 1. 设置 import fullPackage.class;
+         */
         Matcher matcher = IMPORT_PATTERN.matcher(source);
         List<String> importPackages = new ArrayList<String>();
         Map<String, String> fullNames = new HashMap<String, String>();
@@ -73,6 +83,9 @@ public class JavassistCompiler extends AbstractCompiler {
             }
         }
         String[] packages = importPackages.toArray(new String[0]);
+        /**
+         * 2. 设置 extends superClass
+         */
         matcher = EXTENDS_PATTERN.matcher(source);
         CtClass cls;
         if (matcher.find()) {
@@ -89,6 +102,9 @@ public class JavassistCompiler extends AbstractCompiler {
         } else {
             cls = pool.makeClass(name);
         }
+        /**
+         * 3. 设置 implements interface
+         */
         matcher = IMPLEMENTS_PATTERN.matcher(source);
         if (matcher.find()) {
             String[] ifaces = matcher.group(1).trim().split("\\,");
@@ -105,20 +121,35 @@ public class JavassistCompiler extends AbstractCompiler {
                 cls.addInterface(pool.get(ifaceClass));
             }
         }
+        /**
+         * 4. 设置类体
+         */
         String body = source.substring(source.indexOf("{") + 1, source.length() - 1);
         String[] methods = METHODS_PATTERN.split(body);
         for (String method : methods) {
             method = method.trim();
             if (method.length() > 0) {
                 if (method.startsWith(className)) {
+                    /**
+                     * 4.1 设置构造器
+                     */
                     cls.addConstructor(CtNewConstructor.make("public " + method, cls));
                 } else if (FIELD_PATTERN.matcher(method).matches()) {
+                    /**
+                     * 4.2 设置属性
+                     */
                     cls.addField(CtField.make("private " + method, cls));
                 } else {
+                    /**
+                     * 4.3 设置普通方法
+                     */
                     cls.addMethod(CtNewMethod.make("public " + method, cls));
                 }
             }
         }
+        /**
+         * 5. 编译为 Class
+         */
         return cls.toClass(ClassHelper.getCallerClassLoader(getClass()), JavassistCompiler.class.getProtectionDomain());
     }
 

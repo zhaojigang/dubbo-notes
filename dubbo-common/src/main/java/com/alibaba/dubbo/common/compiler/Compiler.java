@@ -26,10 +26,9 @@ import com.alibaba.dubbo.common.extension.SPI;
 public interface Compiler {
 
     /**
-     * Compile java source code.
+     * 将 String code 编译为 Class
      *
      * @param code        Java source code
-     * @param classLoader classloader
      * @return Compiled class
      */
     Class<?> compile(String code, ClassLoader classLoader);

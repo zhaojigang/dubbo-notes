@@ -26,9 +26,14 @@ import com.alibaba.dubbo.common.extension.ExtensionLoader;
  */
 @Adaptive
 public class AdaptiveCompiler implements Compiler {
-
+    /**
+     * 用户配置的 spiKey（jdk 或者 javassist）
+     */
     private static volatile String DEFAULT_COMPILER;
-
+    /**
+     * 用户配置的 spiKey（jdk 或者 javassist），在 ApplicationConfig#setCompiler(String compiler) 中进行调用
+     * @param compiler 用户配置的 spiKey（jdk 或者 javassist）
+     */
     public static void setDefaultCompiler(String compiler) {
         DEFAULT_COMPILER = compiler;
     }
@@ -39,11 +44,13 @@ public class AdaptiveCompiler implements Compiler {
         ExtensionLoader<Compiler> loader = ExtensionLoader.getExtensionLoader(Compiler.class);
         String name = DEFAULT_COMPILER; // copy reference
         if (name != null && name.length() > 0) {
+            // 如果用户配置了 compiler，则创建指定的 Compiler 实例
             compiler = loader.getExtension(name);
         } else {
+            // 如果用户没有指定 compiler，则创建默认的 JavassistCompiler 实例
             compiler = loader.getDefaultExtension();
         }
+        // 使用具体实现进行编译
         return compiler.compile(code, classLoader);
     }
-
 }

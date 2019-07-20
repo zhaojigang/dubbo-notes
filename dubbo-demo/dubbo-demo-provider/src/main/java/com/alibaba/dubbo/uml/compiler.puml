@@ -1,0 +1,24 @@
+@startuml
+
+interface Compiler {
+    + Class<?> compile(String code, ClassLoader classLoader)
+}
+
+class AdaptiveCompiler implements Compiler {
+    + Class<?> compile(String code, ClassLoader classLoader)
+}
+
+abstract class AbstractCompiler implements Compiler {
+    + Class<?> compile(String code, ClassLoader classLoader)
+    # abstract Class<?> doCompile(String name, String source)
+}
+
+class JavassistCompiler extends AbstractCompiler {
+    + Class<?> doCompile(String name, String source)
+}
+
+class JdkCompiler extends AbstractCompiler {
+    + Class<?> doCompile(String name, String source)
+}
+
+@enduml

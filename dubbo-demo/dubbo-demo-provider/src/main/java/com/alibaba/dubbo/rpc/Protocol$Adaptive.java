@@ -2,6 +2,9 @@ package com.alibaba.dubbo.rpc;
 
 import com.alibaba.dubbo.common.extension.ExtensionLoader;
 
+/**
+ * 工厂类和代理类的结合体
+ */
 public class Protocol$Adaptive implements com.alibaba.dubbo.rpc.Protocol {
     @Override
     public void destroy() {
@@ -18,12 +21,15 @@ public class Protocol$Adaptive implements com.alibaba.dubbo.rpc.Protocol {
         if (arg1 == null) {
             throw new IllegalArgumentException("url == null");
         }
+        // 1. 从 URL 中获取 spiKey
         com.alibaba.dubbo.common.URL url = arg1;
         String extName = (url.getProtocol() == null ? "dubbo" : url.getProtocol());
         if (extName == null) {
             throw new IllegalStateException("Fail to get extension(com.alibaba.dubbo.rpc.Protocol) name from url(" + url.toString() + ") use keys([protocol])");
         }
+        // 2. 根据 spiKey 获取相应的实现类
         com.alibaba.dubbo.rpc.Protocol extension = (com.alibaba.dubbo.rpc.Protocol) ExtensionLoader.getExtensionLoader(com.alibaba.dubbo.rpc.Protocol.class).getExtension(extName);
+        // 3. 调用实现类的方法
         return extension.refer(arg0, arg1);
     }
 

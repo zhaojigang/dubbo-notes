@@ -25,8 +25,8 @@ public interface ExtensionFactory {
     /**
      * Get extension.
      *
-     * @param type object type.
-     * @param name object name.
+     * @param type object type. SPI 类型
+     * @param name object name. setXxx 中的 xxx
      * @return object instance.
      */
     <T> T getExtension(Class<T> type, String name);
