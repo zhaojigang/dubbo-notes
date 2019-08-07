@@ -1,0 +1,74 @@
+@startuml
+
+interface RegistryService {
+    + void register(URL url)
+    + void unregister(URL url)
+    + void subscribe(URL url, NotifyListener listener)
+    + void unsubscribe(URL url, NotifyListener listener)
+}
+
+interface Registry extends Node, RegistryService {
+}
+
+abstract class AbstractRegistry implements Registry {
+    - Properties properties
+    - File file
+    - Set<URL> registered
+    - Map<URL, Set<NotifyListener>> subscribed
+    - Map<URL, Map<String, List<URL>>> notified
+    - URL registryUrl
+    - void loadProperties()
+    # void notify(List<URL> urls)
+    - void saveProperties(URL url)
+    - void doSaveProperties(long version)
+    # void notify(List<URL> urls)
+    + void register(URL url)
+    + void unregister(URL url)
+    + void subscribe(URL url, NotifyListener listener)
+    + void unsubscribe(URL url, NotifyListener listener)
+    + void destroy()
+}
+
+abstract class FailbackRegistry extends AbstractRegistry {
+    - Set<URL> failedRegistered
+    - Set<URL> failedUnregistered
+    - Map<URL, Set<NotifyListener>> failedSubscribed
+    - Map<URL, Set<NotifyListener>> failedUnsubscribed
+    - Map<URL, Map<NotifyListener, List<URL>>> failedNotified
+    - ScheduledExecutorService retryExecutor
+    + void retry()
+    - void addFailedSubscribed(URL url, NotifyListener listener)
+    - void removeFailedSubscribed(URL url, NotifyListener listener)
+    + void register(URL url)
+    # abstract void doRegister(URL url)
+    + void unregister(URL url)
+    # abstract void doUnregister(URL url)
+    + void subscribe(URL url, NotifyListener listener)
+    # abstract void doSubscribe(URL url, NotifyListener listener)
+    + void unsubscribe(URL url, NotifyListener listener)
+    # abstract void doUnsubscribe(URL url, NotifyListener listener)
+    # void notify(URL url, NotifyListener listener, List<URL> urls)
+    - void doNotify(URL url, NotifyListener listener, List<URL> urls)
+    # void recover()
+    + void destroy()
+}
+
+class ZookeeperRegistry extends FailbackRegistry {
+    - Map<URL, ConcurrentMap<NotifyListener, ChildListener>> zkListeners
+    - ZookeeperClient zkClient
+    # void doRegister(URL url)
+    # void doUnregister(URL url)
+    # void doSubscribe(URL url, NotifyListener listener)
+    # void doUnsubscribe(URL url, NotifyListener listener)
+    + void destroy()
+}
+
+class RedisRegistry extends FailbackRegistry {
+}
+
+
+
+
+
+
+@enduml

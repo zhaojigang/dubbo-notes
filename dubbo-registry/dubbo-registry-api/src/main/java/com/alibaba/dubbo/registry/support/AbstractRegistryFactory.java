@@ -40,10 +40,19 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
     // Log output
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRegistryFactory.class);
 
-    // The lock for the acquisition process of the registry
+    /**
+     * 创建注册中心加锁：保证注册中心 Registry 单例
+     * 销毁注册中心加锁：防止重复销毁
+     */
     private static final ReentrantLock LOCK = new ReentrantLock();
 
-    // Registry Collection Map<RegistryAddress, Registry>
+    /**
+     * 注册中心缓存：
+     * key=RegistryAddress，eg. zookeeper://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService
+     * value=具体的Registry
+     * <p>
+     * 作用：用于销毁和状态检查操作
+     */
     private static final Map<String, Registry> REGISTRIES = new ConcurrentHashMap<String, Registry>();
 
     /**
@@ -66,6 +75,9 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
         // Lock up the registry shutdown process
         LOCK.lock();
         try {
+            /**
+             * 1. 销毁所有的 Registry
+             */
             for (Registry registry : getRegistries()) {
                 try {
                     registry.destroy();
@@ -73,6 +85,9 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
                     LOGGER.error(e.getMessage(), e);
                 }
             }
+            /**
+             * 2. 清空缓存
+             */
             REGISTRIES.clear();
         } finally {
             // Release the lock
@@ -82,29 +97,32 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
 
     @Override
     public Registry getRegistry(URL url) {
+        /**
+         * 1. 创建注册 URL
+         */
         url = url.setPath(RegistryService.class.getName())
                 .addParameter(Constants.INTERFACE_KEY, RegistryService.class.getName())
                 .removeParameters(Constants.EXPORT_KEY, Constants.REFER_KEY);
+        // eg. key = zookeeper://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService
         String key = url.toServiceString();
-        // Lock the registry access process to ensure a single instance of the registry
-        LOCK.lock();
-        try {
-            Registry registry = REGISTRIES.get(key);
-            if (registry != null) {
-                return registry;
-            }
-            registry = createRegistry(url);
-            if (registry == null) {
-                throw new IllegalStateException("Can not create registry " + url);
-            }
-            REGISTRIES.put(key, registry);
+        /**
+         * 2. 从缓存获取 Registry，如果有，直接返回；如果没有，则创建注册中心，最后塞入缓存
+         */
+        Registry registry = REGISTRIES.get(key);
+        if (registry != null) {
             return registry;
-        } finally {
-            // Release the lock
-            LOCK.unlock();
         }
+        registry = createRegistry(url);
+        if (registry == null) {
+            throw new IllegalStateException("Can not create registry " + url);
+        }
+        REGISTRIES.put(key, registry);
+        return registry;
     }
 
+    /**
+     * 创建注册中心
+     */
     protected abstract Registry createRegistry(URL url);
 
 }

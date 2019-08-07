@@ -28,9 +28,10 @@ import com.alibaba.dubbo.common.extension.SPI;
 public interface ProxyFactory {
 
     /**
+     * 创造一个代理，用于服务引用创建代理
      * create proxy.
      *
-     * @param invoker
+     * @param invoker 会被 proxy 调用的第一层 Invoker
      * @return proxy
      */
     @Adaptive({Constants.PROXY_KEY})
@@ -48,13 +49,14 @@ public interface ProxyFactory {
     /**
      * create invoker.
      *
-     * @param <T>
-     * @param proxy
-     * @param type
+     * @param <T> 接口 eg. com.alibaba.dubbo.demo.DemoService
+     * @param proxy ref实例, eg. emoServiceImpl实例
+     * @param type interface eg. com.alibaba.dubbo.demo.DemoService
      * @param url
+     *       injvm://127.0.0.1/com.alibaba.dubbo.demo.DemoService?anyhost=true...
+     *       registry://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-provider...&export=dubbo://10.213.11.98:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true...
      * @return invoker
      */
     @Adaptive({Constants.PROXY_KEY})
     <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) throws RpcException;
-
 }

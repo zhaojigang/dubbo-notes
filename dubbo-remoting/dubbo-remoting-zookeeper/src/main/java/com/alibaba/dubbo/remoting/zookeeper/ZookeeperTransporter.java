@@ -23,8 +23,9 @@ import com.alibaba.dubbo.common.extension.SPI;
 
 @SPI("curator")
 public interface ZookeeperTransporter {
-
+    /**
+     * 连接zk，并返回zk客户端操作类（ZookeeperClient实例）
+     */
     @Adaptive({Constants.CLIENT_KEY, Constants.TRANSPORTER_KEY})
     ZookeeperClient connect(URL url);
-
 }

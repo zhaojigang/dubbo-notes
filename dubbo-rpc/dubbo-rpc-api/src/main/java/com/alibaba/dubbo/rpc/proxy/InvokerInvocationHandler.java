@@ -26,7 +26,9 @@ import java.lang.reflect.Method;
  * InvokerHandler
  */
 public class InvokerInvocationHandler implements InvocationHandler {
-
+    /**
+     * 第一个被Proxy调用的Invoker，默认为MockClusterInvoker
+     */
     private final Invoker<?> invoker;
 
     public InvokerInvocationHandler(Invoker<?> handler) {
@@ -49,7 +51,9 @@ public class InvokerInvocationHandler implements InvocationHandler {
         if ("equals".equals(methodName) && parameterTypes.length == 1) {
             return invoker.equals(args[0]);
         }
+        /**
+         * 创建 RpcInvocation，执行调用
+         */
         return invoker.invoke(new RpcInvocation(method, args)).recreate();
     }
-
 }

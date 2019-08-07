@@ -1,0 +1,49 @@
+@startuml
+
+interface ProxyFactory {
+    + <T> T getProxy(Invoker<T> invoker)
+    + <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url)
+}
+
+class StubProxyFactoryWrapper implements ProxyFactory {
+    - ProxyFactory proxyFactory
+    - Protocol protocol
+    + <T> T getProxy(Invoker<T> invoker)
+    + <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url)
+}
+
+abstract class AbstractProxyFactory implements ProxyFactory {
+    + <T> T getProxy(Invoker<T> invoker)
+    + abstract <T> T getProxy(Invoker<T> invoker, Class<?>[] types)
+}
+
+class JavassistProxyFactory extends AbstractProxyFactory {
+    + <T> T getProxy(Invoker<T> invoker, Class<?>[] interfaces)
+    + <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url)
+}
+
+class JdkProxyFactory extends AbstractProxyFactory {
+    + <T> T getProxy(Invoker<T> invoker, Class<?>[] interfaces)
+    + <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url)
+}
+
+class InvokerInvocationHandler implements InvocationHandler {
+
+}
+
+interface Node {
+}
+
+interface Invoker<T> extends Node {
+}
+
+abstract class AbstractProxyInvoker<T> implements Invoker {
+}
+
+JavassistProxyFactory *-- InvokerInvocationHandler
+JdkProxyFactory *-- InvokerInvocationHandler
+
+JavassistProxyFactory *-- AbstractProxyInvoker
+JdkProxyFactory *-- AbstractProxyInvoker
+
+@enduml

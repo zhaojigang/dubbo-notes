@@ -30,6 +30,9 @@
 
     <!-- generate proxy for the remote service, then demoService can be used in the same way as the
     local regular interface -->
-    <dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService"/>
+    <!-- 通常姿势：需要引入 api jar 包 -->
+    <!--<dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService"/>-->
+    <!-- 泛化姿势：不需要引入 api jar 包 -->
+    <dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService" generic="true"/>
 
 </beans>

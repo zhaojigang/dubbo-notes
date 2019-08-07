@@ -21,6 +21,7 @@ import com.alibaba.dubbo.common.URL;
 import java.util.List;
 
 /**
+ * 注册服务接口
  * RegistryService. (SPI, Prototype, ThreadSafe)
  *
  * @see com.alibaba.dubbo.registry.Registry
@@ -29,20 +30,28 @@ import java.util.List;
 public interface RegistryService {
 
     /**
+     * 注册数据，eg. 提供者服务，消费者地址，路由规则，覆盖配置等
      * Register data, such as : provider service, consumer address, route rule, override rule and other data.
      * <p>
+     * 注册需要满足如下要求：
      * Registering is required to support the contract:<br>
+     * 当 URL 设置 check=false 时，当注册失败，不会抛异常（会后台进行重试）；否则，抛出异常
      * 1. When the URL sets the check=false parameter. When the registration fails, the exception is not thrown and retried in the background. Otherwise, the exception will be thrown.<br>
+     * 当 URL 设置 dynamic=false 时，
      * 2. When URL sets the dynamic=false parameter, it needs to be stored persistently, otherwise, it should be deleted automatically when the registrant has an abnormal exit.<br>
+     * 当 URL 设置 category=routers 时，
      * 3. When the URL sets category=routers, it means classified storage, the default category is providers, and the data can be notified by the classified section. <br>
+     * 当注册中心重启、网络抖动，数据不能丢失
      * 4. When the registry is restarted, network jitter, data can not be lost, including automatically deleting data from the broken line.<br>
+     * 允许多个具有相同的URL但是不同参数的URLs共存，彼此不会覆盖
      * 5. Allow URLs which have the same URL but different parameters to coexist,they can't cover each other.<br>
      *
-     * @param url  Registration information , is not allowed to be empty, e.g: dubbo://10.20.153.10/com.alibaba.foo.BarService?version=1.0.0&application=kylin
+     * @param url  Registration information 注册信息, is not allowed to be empty, e.g: dubbo://10.20.153.10/com.alibaba.foo.BarService?version=1.0.0&application=kylin
      */
     void register(URL url);
 
     /**
+     * 取消注册
      * Unregister
      * <p>
      * Unregistering is required to support the contract:<br>
@@ -54,7 +63,7 @@ public interface RegistryService {
     void unregister(URL url);
 
     /**
-     * Subscrib to eligible registered data and automatically push when the registered data is changed.
+     * Subscribe to eligible registered data and automatically push when the registered data is changed.
      * <p>
      * Subscribing need to support contracts:<br>
      * 1. When the URL sets the check=false parameter. When the registration fails, the exception is not thrown and retried in the background. <br>

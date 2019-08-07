@@ -45,6 +45,7 @@ public class SpringExtensionFactory implements ExtensionFactory {
     /**
      * 调用点：
      * 1. ServiceBean<T> implements ApplicationContextAware
+     *
      * 2. ReferenceBean<T> implements ApplicationContextAware
      */
     public static void addApplicationContext(ApplicationContext context) {

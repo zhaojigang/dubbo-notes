@@ -111,6 +111,11 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorWatch
         }
     }
 
+    /**
+     * 检测节点是否已经存在
+     * @param path 节点
+     * @return
+     */
     @Override
     public boolean checkExists(String path) {
         try {

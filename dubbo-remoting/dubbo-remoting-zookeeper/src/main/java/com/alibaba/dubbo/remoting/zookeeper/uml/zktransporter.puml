@@ -1,0 +1,15 @@
+@startuml
+
+interface ZookeeperTransporter {
+    + ZookeeperClient connect(URL url)
+}
+
+class CuratorZookeeperTransporter implements ZookeeperTransporter {
+    + ZookeeperClient connect(URL url)
+}
+
+class ZkclientZookeeperTransporter implements ZookeeperTransporter {
+    + ZookeeperClient connect(URL url)
+}
+
+@enduml

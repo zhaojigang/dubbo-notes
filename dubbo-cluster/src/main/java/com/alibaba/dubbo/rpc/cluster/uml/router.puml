@@ -1,0 +1,49 @@
+@startuml
+
+interface Router extends Comparable {
+    + <T> List<Invoker<T>> route(List<Invoker<T>> invokers, URL url, Invocation invocation)
+    + int getPriority()
+}
+
+abstract class AbstractRouter implements Router {
+    # int priority
+    + int compareTo(Router o)
+    + int getPriority()
+}
+
+class ConditionRouter extends AbstractRouter {
+    + <T> List<Invoker<T>> route(...)
+}
+
+class ScriptRouter extends AbstractRouter {
+    + <T> List<Invoker<T>> route(...)
+}
+
+class TagRouter extends AbstractRouter {
+    + <T> List<Invoker<T>> route(...)
+}
+
+class MockInvokersSelector extends AbstractRouter {
+    + <T> List<Invoker<T>> route(...)
+}
+
+interface RouterFactory {
+    + Router getRouter(URL url)
+}
+
+class ConditionRouterFactory implements RouterFactory {
+    + Router getRouter(URL url)
+}
+
+class ScriptRouterFactory implements RouterFactory {
+    + Router getRouter(URL url)
+}
+
+class FileRouterFactory implements RouterFactory {
+    + Router getRouter(URL url)
+}
+
+ConditionRouterFactory *-- ConditionRouter
+ScriptRouterFactory *-- ScriptRouter
+
+@enduml

@@ -194,29 +194,49 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public synchronized void notify(List<URL> urls) {
+        /**
+         * 服务提供者URL
+         */
         List<URL> invokerUrls = new ArrayList<URL>();
+        /**
+         * 路由URL
+         */
         List<URL> routerUrls = new ArrayList<URL>();
+        /**
+         * 配置URL
+         */
         List<URL> configuratorUrls = new ArrayList<URL>();
+
+        /**
+         * 将 List<URL> urls 进行分组
+         */
         for (URL url : urls) {
             String protocol = url.getProtocol();
             String category = url.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY);
+            // category=routers || protocol=route
             if (Constants.ROUTERS_CATEGORY.equals(category)
                     || Constants.ROUTE_PROTOCOL.equals(protocol)) {
                 routerUrls.add(url);
+            // category=configurators || protocol=override
             } else if (Constants.CONFIGURATORS_CATEGORY.equals(category)
                     || Constants.OVERRIDE_PROTOCOL.equals(protocol)) {
                 configuratorUrls.add(url);
+            // category=providers
             } else if (Constants.PROVIDERS_CATEGORY.equals(category)) {
                 invokerUrls.add(url);
             } else {
                 logger.warn("Unsupported category " + category + " in notified url: " + url + " from registry " + getUrl().getAddress() + " to consumer " + NetUtils.getLocalHost());
             }
         }
-        // configurators
+        /**
+         * 将 List<URL> configuratorUrls 转化为 List<Configurator> configurators
+         */
         if (configuratorUrls != null && !configuratorUrls.isEmpty()) {
             this.configurators = toConfigurators(configuratorUrls);
         }
-        // routers
+        /**
+         * 将 List<URL> routerUrls 转化为 List<Router> routers
+         */
         if (routerUrls != null && !routerUrls.isEmpty()) {
             List<Router> routers = toRouters(routerUrls);
             if (routers != null) { // null - do nothing

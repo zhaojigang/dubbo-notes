@@ -1,0 +1,8 @@
+@startuml
+
+interface ZookeeperClient
+abstract class AbstractZookeeperClient<TargetChildListener> implements ZookeeperClient
+class CuratorZookeeperClient extends AbstractZookeeperClient
+class ZkclientZookeeperClient extends AbstractZookeeperClient
+
+@enduml

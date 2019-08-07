@@ -76,6 +76,9 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         this.service = service;
     }
 
+    /**
+     * ApplicationContextAware
+     */
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
@@ -83,6 +86,9 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         supportedApplicationListener = addApplicationListener(applicationContext, this);
     }
 
+    /**
+     * BeanNameAware
+     */
     @Override
     public void setBeanName(String name) {
         this.beanName = name;
@@ -116,6 +122,9 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return supportedApplicationListener && (delay == null || delay == -1);
     }
 
+    /**
+     * InitializingBean
+     */
     @Override
     @SuppressWarnings({"unchecked", "deprecation"})
     public void afterPropertiesSet() throws Exception {
@@ -292,8 +301,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
     }
 
     /**
-     * @param applicationEventPublisher
-     * @since 2.6.5
+     * ApplicationEventPublisherAware
      */
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {

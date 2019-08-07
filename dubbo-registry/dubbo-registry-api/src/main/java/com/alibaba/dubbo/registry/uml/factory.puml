@@ -1,0 +1,23 @@
+@startuml
+
+interface RegistryFactory {
+    + Registry getRegistry(URL url)
+}
+
+abstract class AbstractRegistryFactory implements RegistryFactory {
+    + static Map<String, Registry> REGISTRIES
+    + Registry getRegistry(URL url)
+    # abstract Registry createRegistry(URL url)
+    + static void destroyAll()
+}
+
+class ZookeeperRegistryFactory extends AbstractRegistryFactory {
+    - ZookeeperTransporter zookeeperTransporter
+    + Registry createRegistry(URL url)
+}
+
+class RedisRegistryFactory extends AbstractRegistryFactory {
+    + Registry createRegistry(URL url)
+}
+
+@enduml

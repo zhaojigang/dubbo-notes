@@ -22,20 +22,27 @@ import com.alibaba.dubbo.registry.support.AbstractRegistryFactory;
 import com.alibaba.dubbo.remoting.zookeeper.ZookeeperTransporter;
 
 /**
- * ZookeeperRegistryFactory.
- *
+ * zk 注册工厂
  */
 public class ZookeeperRegistryFactory extends AbstractRegistryFactory {
-
+    /**
+     * 注入 ZookeeperTransporter$Adaptive 类，
+     * ZookeeperTransporter（SPI接口） 是 zk 客户端的工厂接口
+     */
     private ZookeeperTransporter zookeeperTransporter;
 
+    /**
+     * 用于 Dubbo SPI IOC 注入
+     */
     public void setZookeeperTransporter(ZookeeperTransporter zookeeperTransporter) {
         this.zookeeperTransporter = zookeeperTransporter;
     }
 
+    /**
+     * 创建 Registry，并连接
+     */
     @Override
     public Registry createRegistry(URL url) {
         return new ZookeeperRegistry(url, zookeeperTransporter);
     }
-
 }

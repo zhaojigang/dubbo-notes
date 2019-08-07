@@ -19,6 +19,7 @@ package com.alibaba.dubbo.registry;
 import com.alibaba.dubbo.common.Node;
 
 /**
+ * 注册中心
  * Registry. (SPI, Prototype, ThreadSafe)
  *
  * @see com.alibaba.dubbo.registry.RegistryFactory#getRegistry(com.alibaba.dubbo.common.URL)

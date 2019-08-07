@@ -263,11 +263,13 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 monitor = application.getMonitor();
             }
         }
+        // 泛化调用
         if (ref instanceof GenericService) {
             interfaceClass = GenericService.class;
             if (StringUtils.isEmpty(generic)) {
                 generic = Boolean.TRUE.toString();
             }
+        // 普通调用
         } else {
             try {
                 interfaceClass = Class.forName(interfaceName, true, Thread.currentThread()

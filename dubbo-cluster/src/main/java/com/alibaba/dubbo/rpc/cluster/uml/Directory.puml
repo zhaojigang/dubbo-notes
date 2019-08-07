@@ -1,0 +1,30 @@
+@startuml
+
+interface Directory<T> extends Node {
+    + List<Invoker<T>> list(Invocation invocation)
+}
+
+abstract class AbstractDirectory<T> implements Directory {
+    + List<Invoker<T>> list(Invocation invocation)
+    # abstract List<Invoker<T>> doList(Invocation invocation)
+}
+
+interface NotifyListener {
+    + void notify(List<URL> urls)
+}
+
+class RegistryDirectory<T> extends AbstractDirectory implements NotifyListener {
+    - Cluster cluster
+    - RouterFactory routerFactory
+    - Registry registry
+    - Map<String, List<Invoker<T>>> methodInvokerMap
+    + List<Invoker<T>> doList(Invocation invocation)
+    + void notify(List<URL> urls)
+}
+
+class StaticDirectory<T> extends AbstractDirectory {
+    - List<Invoker<T>> invokers
+    # List<Invoker<T>> doList(Invocation invocation)
+}
+
+@enduml

@@ -36,6 +36,9 @@ public abstract class AbstractProxyFactory implements ProxyFactory {
 
     @Override
     public <T> T getProxy(Invoker<T> invoker, boolean generic) throws RpcException {
+        /**
+         * 1. 构造接口参数，默认只有 invoker.getInterface()（eg. DemoService）, EchoService.class 两个接口
+         */
         Class<?>[] interfaces = null;
         String config = invoker.getUrl().getParameter("interfaces");
         if (config != null && config.length() > 0) {
@@ -61,9 +64,15 @@ public abstract class AbstractProxyFactory implements ProxyFactory {
             interfaces[len] = GenericService.class;
         }
 
+        /**
+         * 2. 调用子类的实现去创建代理
+         */
         return getProxy(invoker, interfaces);
     }
 
+    /**
+     * 提供给子类的抽象方法
+     */
     public abstract <T> T getProxy(Invoker<T> invoker, Class<?>[] types);
 
 }

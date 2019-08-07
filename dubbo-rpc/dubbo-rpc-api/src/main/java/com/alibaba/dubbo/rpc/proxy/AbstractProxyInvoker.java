@@ -30,8 +30,13 @@ import java.lang.reflect.InvocationTargetException;
  */
 public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
 
+    /**
+     * 真实对象 ref, eg. DemoServiceImpl
+     */
     private final T proxy;
-
+    /**
+     * 接口类型，eg. DemoService
+     */
     private final Class<T> type;
 
     private final URL url;
@@ -70,9 +75,17 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
     public void destroy() {
     }
 
+    /**
+     * 进行调用
+     * @param invocation 请求参数
+     * @return 返回结果
+     * @throws RpcException
+     */
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         try {
+            // 1. 调用子类发起请求
+            // 2. 包装响应为 RpcResult
             return new RpcResult(doInvoke(proxy, invocation.getMethodName(), invocation.getParameterTypes(), invocation.getArguments()));
         } catch (InvocationTargetException e) {
             return new RpcResult(e.getTargetException());
@@ -81,12 +94,11 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
         }
     }
 
+    // 子类覆写的真正调用的方法
     protected abstract Object doInvoke(T proxy, String methodName, Class<?>[] parameterTypes, Object[] arguments) throws Throwable;
 
     @Override
     public String toString() {
         return getInterface() + " -> " + (getUrl() == null ? " " : getUrl().toString());
     }
-
-
 }

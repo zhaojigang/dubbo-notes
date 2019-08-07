@@ -1,0 +1,29 @@
+@startuml
+
+interface LoadBalance {
+    + <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation)
+}
+
+abstract class AbstractLoadBalance implements LoadBalance {
+    + <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation)
+    # abstract <T> Invoker<T> doSelect(List<Invoker<T>> invokers, URL url, Invocation invocation)
+    # int getWeight(Invoker<?> invoker, Invocation invocation)
+}
+
+class RandomLoadBalance extends AbstractLoadBalance {
+    # <T> Invoker<T> doSelect(...)
+}
+
+class RoundRobinLoadBalance extends AbstractLoadBalance {
+    # <T> Invoker<T> doSelect(...)
+}
+
+class ConsistentHashLoadBalance extends AbstractLoadBalance {
+    # <T> Invoker<T> doSelect(...)
+}
+
+class LeastActiveLoadBalance extends AbstractLoadBalance {
+    # <T> Invoker<T> doSelect(...)
+}
+
+@enduml

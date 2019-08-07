@@ -42,14 +42,29 @@ public class StubProxyFactoryWrapper implements ProxyFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StubProxyFactoryWrapper.class);
 
+    /**
+     * 真正的ProxyFactory具体子类（JavassistProxyFactory/JdkProxyFactory）
+     */
     private final ProxyFactory proxyFactory;
 
+    /**
+     * 注入的协议，注入的是SPI接口Protocol的适配类 Protocol$Adaptive
+     */
     private Protocol protocol;
 
+    /**
+     * 具有父类SPI接口（ProxyFactory）的单参构造器，所以该类是一个Wrapper类，
+     * 会在getExtension获取ProxyFactory具体子类时进行aop
+     */
     public StubProxyFactoryWrapper(ProxyFactory proxyFactory) {
         this.proxyFactory = proxyFactory;
     }
 
+    /**
+     * set IOC 注入，注入的是SPI接口Protocol的适配类 Protocol$Adaptive
+     * 会在getExtension获取ProxyFactory具体子类时进行ioc
+     * @param protocol
+     */
     public void setProtocol(Protocol protocol) {
         this.protocol = protocol;
     }
@@ -62,7 +77,13 @@ public class StubProxyFactoryWrapper implements ProxyFactory {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T getProxy(Invoker<T> invoker) throws RpcException {
+        /**
+         * 1. 调用 ProxyFactory 获取代理
+         */
         T proxy = proxyFactory.getProxy(invoker);
+        /**
+         * 2.
+         */
         if (GenericService.class != invoker.getInterface()) {
             String stub = invoker.getUrl().getParameter(Constants.STUB_KEY, invoker.getUrl().getParameter(Constants.LOCAL_KEY));
             if (ConfigUtils.isNotEmpty(stub)) {

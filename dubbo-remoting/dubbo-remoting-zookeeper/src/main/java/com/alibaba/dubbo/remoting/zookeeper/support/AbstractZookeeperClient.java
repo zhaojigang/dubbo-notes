@@ -29,16 +29,26 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+
 public abstract class AbstractZookeeperClient<TargetChildListener> implements ZookeeperClient {
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractZookeeperClient.class);
 
+    /**
+     * 注册的URL
+     */
     private final URL url;
-
+    /**
+     * 状态监听器
+     */
     private final Set<StateListener> stateListeners = new CopyOnWriteArraySet<StateListener>();
-
+    /**
+     * 子节点监听器
+     */
     private final ConcurrentMap<String, ConcurrentMap<ChildListener, TargetChildListener>> childListeners = new ConcurrentHashMap<String, ConcurrentMap<ChildListener, TargetChildListener>>();
-
+    /**
+     * 会话是否关闭
+     */
     private volatile boolean closed = false;
 
     public AbstractZookeeperClient(URL url) {
@@ -52,18 +62,38 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
 
     @Override
     public void create(String path, boolean ephemeral) {
+        /**
+         * 优化：
+         * 如果是持久节点，检测是否节点已经存在，如果已经存在，则直接返回
+         */
         if (!ephemeral) {
             if (checkExists(path)) {
                 return;
             }
         }
+
+        /**
+         * 递归创建节点路径。
+         * 实际上，如果使用了curator的话，可以直接使用递归创建节点即可（结合zk的特性，只有最后一个字节点可以是临时节点，父节点一定是持久化节点），
+         * 这里这样的写法是兼容不能递归创建节点的 ZkClient 客户端
+         *
+         * eg. /dubbo/com.alibaba.dubbo.demo.DemoService/providers/dubbo...
+         * 需要先创建/dubbo，
+         * 再创建/dubbo/com.alibaba.dubbo.demo.DemoService，
+         * 再创建/dubbo/com.alibaba.dubbo.demo.DemoService/providers这三个节点
+         */
         int i = path.lastIndexOf('/');
         if (i > 0) {
             create(path.substring(0, i), false);
         }
+        /**
+         * 创建节点
+         */
         if (ephemeral) {
+            // 创建临时节点
             createEphemeral(path);
         } else {
+            // 创建持久节点
             createPersistent(path);
         }
     }
@@ -82,6 +112,12 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
         return stateListeners;
     }
 
+    /**
+     * 添加子节点监听器
+     * @param path 指定节点
+     * @param listener 子节点监听器
+     * @return
+     */
     @Override
     public List<String> addChildListener(String path, final ChildListener listener) {
         ConcurrentMap<ChildListener, TargetChildListener> listeners = childListeners.get(path);
@@ -129,10 +165,19 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
 
     protected abstract void doClose();
 
+    /**
+     * 创建持久化节点
+     */
     protected abstract void createPersistent(String path);
 
+    /**
+     * 创建临时节点
+     */
     protected abstract void createEphemeral(String path);
 
+    /**
+     * 检测节点是否存在
+     */
     protected abstract boolean checkExists(String path);
 
     protected abstract TargetChildListener createTargetChildListener(String path, ChildListener listener);

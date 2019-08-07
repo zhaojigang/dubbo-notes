@@ -1,0 +1,58 @@
+@startuml
+
+interface Cluster{
+    + <T> Invoker<T> join(Directory<T> directory)
+}
+
+class AvailableCluster implements Cluster {
+}
+
+class BroadcastCluster implements Cluster {
+}
+
+class FailbackCluster implements Cluster {
+}
+
+class FailfastCluster implements Cluster {
+}
+
+class FailoverCluster implements Cluster {
+}
+
+class FailsafeCluster implements Cluster {
+}
+
+class ForkingCluster implements Cluster {
+}
+
+class MergeableCluster implements Cluster {
+}
+
+class MockClusterWrapper implements Cluster {
+}
+
+
+abstract class AbstractClusterInvoker<T> implements Invoker
+class BroadcastClusterInvoker<T> extends AbstractClusterInvoker
+class FailbackClusterInvoker<T> extends AbstractClusterInvoker
+class FailfastClusterInvoker<T> extends AbstractClusterInvoker
+class FailoverClusterInvoker<T> extends AbstractClusterInvoker
+class FailsafeClusterInvoker<T> extends AbstractClusterInvoker
+class ForkingClusterInvoker<T> extends AbstractClusterInvoker
+class MergeableClusterInvoker<T> implements Invoker
+class MockClusterInvoker<T> implements Invoker
+
+
+
+AvailableCluster *-- AbstractClusterInvoker
+BroadcastCluster *-- BroadcastClusterInvoker
+FailbackCluster *-- FailbackClusterInvoker
+FailfastCluster *-- FailfastClusterInvoker
+FailoverCluster *-- FailoverClusterInvoker
+FailsafeCluster *-- FailsafeClusterInvoker
+ForkingCluster *-- ForkingClusterInvoker
+MergeableCluster *-- MergeableClusterInvoker
+MockClusterWrapper *-- MockClusterInvoker
+
+
+@enduml

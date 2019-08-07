@@ -56,6 +56,7 @@ import java.util.regex.Pattern;
 
 /**
  * AbstractBeanDefinitionParser
+ * <dubbo:xxx></dubbo:xxx> 标签解析器
  *
  * @export
  */
@@ -76,6 +77,7 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
         RootBeanDefinition beanDefinition = new RootBeanDefinition();
         beanDefinition.setBeanClass(beanClass);
         beanDefinition.setLazyInit(false);
+        // 1. 处理 id 属性
         String id = element.getAttribute("id");
         if ((id == null || id.length() == 0) && required) {
             String generatedBeanName = element.getAttribute("name");
@@ -100,8 +102,10 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                 throw new IllegalStateException("Duplicate spring bean id " + id);
             }
             parserContext.getRegistry().registerBeanDefinition(id, beanDefinition);
+            // 添加 id 属性
             beanDefinition.getPropertyValues().addPropertyValue("id", id);
         }
+        // 处理 ProtocolConfig，即 <dubbo:protocol> 标签
         if (ProtocolConfig.class.equals(beanClass)) {
             for (String name : parserContext.getRegistry().getBeanDefinitionNames()) {
                 BeanDefinition definition = parserContext.getRegistry().getBeanDefinition(name);
@@ -109,10 +113,12 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                 if (property != null) {
                     Object value = property.getValue();
                     if (value instanceof ProtocolConfig && id.equals(((ProtocolConfig) value).getName())) {
+                        // 设置 protocol 属性
                         definition.getPropertyValues().addPropertyValue("protocol", new RuntimeBeanReference(id));
                     }
                 }
             }
+        // 处理 ServiceBean，即 <dubbo:service> 标签
         } else if (ServiceBean.class.equals(beanClass)) {
             String className = element.getAttribute("class");
             if (className != null && className.length() > 0) {
@@ -120,8 +126,10 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                 classDefinition.setBeanClass(ReflectUtils.forName(className));
                 classDefinition.setLazyInit(false);
                 parseProperties(element.getChildNodes(), classDefinition);
+                // 设置 ref 属性
                 beanDefinition.getPropertyValues().addPropertyValue("ref", new BeanDefinitionHolder(classDefinition, id + "Impl"));
             }
+        // 处理 ProviderConfig，即 <dubbo:provider> 标签
         } else if (ProviderConfig.class.equals(beanClass)) {
             parseNested(element, parserContext, ServiceBean.class, true, "service", "provider", id, beanDefinition);
         } else if (ConsumerConfig.class.equals(beanClass)) {

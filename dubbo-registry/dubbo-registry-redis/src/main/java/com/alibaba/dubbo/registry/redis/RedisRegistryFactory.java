@@ -25,10 +25,8 @@ import com.alibaba.dubbo.registry.support.AbstractRegistryFactory;
  *
  */
 public class RedisRegistryFactory extends AbstractRegistryFactory {
-
     @Override
     protected Registry createRegistry(URL url) {
         return new RedisRegistry(url);
     }
-
 }
