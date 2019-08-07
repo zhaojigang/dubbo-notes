@@ -31,8 +31,10 @@
 
     <!-- service implementation, as same as regular local bean -->
     <bean id="demoService" class="com.alibaba.dubbo.demo.provider.DemoServiceImpl"/>
+    <bean id="testGenericService" class="com.alibaba.dubbo.demo.provider.TestGenericServiceImpl"/>
 
     <!-- declare the service interface to be exported -->
     <dubbo:service interface="com.alibaba.dubbo.demo.DemoService" ref="demoService"/>
+    <dubbo:service interface="com.alibaba.dubbo.demo.TestGenericService" ref="testGenericService"/>
 
 </beans>

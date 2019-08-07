@@ -777,15 +777,15 @@ public final class ReflectUtils {
      */
     public static Method findMethodByMethodSignature(Class<?> clazz, String methodName, String[] parameterTypes)
             throws NoSuchMethodException, ClassNotFoundException {
-        String signature = clazz.getName() + "." + methodName;
+        String signature = clazz.getName() + "." + methodName; // com.alibaba.dubbo.demo.DemoService.sayHello
         if (parameterTypes != null && parameterTypes.length > 0) {
-            signature += StringUtils.join(parameterTypes);
+            signature += StringUtils.join(parameterTypes); // com.alibaba.dubbo.demo.DemoService.sayHellojava.lang.String
         }
-        Method method = Signature_METHODS_CACHE.get(signature);
+        Method method = Signature_METHODS_CACHE.get(signature); // 从缓存中获取
         if (method != null) {
             return method;
         }
-        if (parameterTypes == null) {
+        if (parameterTypes == null) {// 如果没有参数，就找出方法名字相同的方法
             List<Method> finded = new ArrayList<Method>();
             for (Method m : clazz.getMethods()) {
                 if (m.getName().equals(methodName)) {
@@ -801,7 +801,7 @@ public final class ReflectUtils {
                 throw new IllegalStateException(msg);
             }
             method = finded.get(0);
-        } else {
+        } else { // 如果有参数，直接按照方法名和参数类型去获取方法
             Class<?>[] types = new Class<?>[parameterTypes.length];
             for (int i = 0; i < parameterTypes.length; i++) {
                 types[i] = ReflectUtils.name2class(parameterTypes[i]);
@@ -809,7 +809,7 @@ public final class ReflectUtils {
             method = clazz.getMethod(methodName, types);
 
         }
-        Signature_METHODS_CACHE.put(signature, method);
+        Signature_METHODS_CACHE.put(signature, method); // 加到缓存中
         return method;
     }
 

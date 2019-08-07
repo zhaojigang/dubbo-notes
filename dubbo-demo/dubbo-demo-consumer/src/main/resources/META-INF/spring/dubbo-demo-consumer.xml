@@ -34,5 +34,6 @@
     <!--<dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService"/>-->
     <!-- 泛化姿势：不需要引入 api jar 包 -->
     <dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService" generic="true"/>
+    <dubbo:reference id="testGenericService" check="false" interface="com.alibaba.dubbo.demo.TestGenericService" generic="true"/>
 
 </beans>

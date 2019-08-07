@@ -53,16 +53,19 @@ public class ProtocolUtils {
                 || Constants.GENERIC_SERIALIZATION_BEAN.equalsIgnoreCase(generic));
     }
 
+    // generic=true
     public static boolean isDefaultGenericSerialization(String generic) {
         return isGeneric(generic)
                 && Constants.GENERIC_SERIALIZATION_DEFAULT.equalsIgnoreCase(generic);
     }
 
+    // generic=nativejava
     public static boolean isJavaGenericSerialization(String generic) {
         return isGeneric(generic)
                 && Constants.GENERIC_SERIALIZATION_NATIVE_JAVA.equalsIgnoreCase(generic);
     }
 
+    // generic=bean
     public static boolean isBeanGenericSerialization(String generic) {
         return isGeneric(generic) && Constants.GENERIC_SERIALIZATION_BEAN.equals(generic);
     }

@@ -55,25 +55,30 @@ public class GenericFilter implements Filter {
                 && inv.getArguments() != null
                 && inv.getArguments().length == 3
                 && !invoker.getInterface().equals(GenericService.class)) {
+            // 方法名
             String name = ((String) inv.getArguments()[0]).trim();
+            // 方法参数类型
             String[] types = (String[]) inv.getArguments()[1];
+            // 方法参数值
             Object[] args = (Object[]) inv.getArguments()[2];
             try {
+                // 根据接口名（com.alibaba.dubbo.demo.DemoService）+方法名（sayHello）+方法参数类型（new String[]{"java.lang.String"}）反射获取 Method 对象
                 Method method = ReflectUtils.findMethodByMethodSignature(invoker.getInterface(), name, types);
                 Class<?>[] params = method.getParameterTypes();
+                // 获取方法参数值（args）的各种姿势
                 if (args == null) {
                     args = new Object[params.length];
                 }
-                String generic = inv.getAttachment(Constants.GENERIC_KEY);
+                String generic = inv.getAttachment(Constants.GENERIC_KEY); // generic=true
 
                 if (StringUtils.isBlank(generic)) {
                     generic = RpcContext.getContext().getAttachment(Constants.GENERIC_KEY);
                 }
 
                 if (StringUtils.isEmpty(generic)
-                        || ProtocolUtils.isDefaultGenericSerialization(generic)) {
+                        || ProtocolUtils.isDefaultGenericSerialization(generic)) { // generic为空 || generic=true
                     args = PojoUtils.realize(args, params, method.getGenericParameterTypes());
-                } else if (ProtocolUtils.isJavaGenericSerialization(generic)) {
+                } else if (ProtocolUtils.isJavaGenericSerialization(generic)) { // generic=nativejava
                     for (int i = 0; i < args.length; i++) {
                         if (byte[].class == args[i].getClass()) {
                             try {
@@ -94,7 +99,7 @@ public class GenericFilter implements Filter {
                                             args[i].getClass());
                         }
                     }
-                } else if (ProtocolUtils.isBeanGenericSerialization(generic)) {
+                } else if (ProtocolUtils.isBeanGenericSerialization(generic)) { // generic=bean
                     for (int i = 0; i < args.length; i++) {
                         if (args[i] instanceof JavaBeanDescriptor) {
                             args[i] = JavaBeanSerializeUtil.deserialize((JavaBeanDescriptor) args[i]);
@@ -109,12 +114,15 @@ public class GenericFilter implements Filter {
                         }
                     }
                 }
+                // 发起调用
                 Result result = invoker.invoke(new RpcInvocation(method, args, inv.getAttachments()));
+                // 处理异常
                 if (result.hasException()
                         && !(result.getException() instanceof GenericException)) {
                     return new RpcResult(new GenericException(result.getException()));
                 }
-                if (ProtocolUtils.isJavaGenericSerialization(generic)) {
+                // 处理正常情况
+                if (ProtocolUtils.isJavaGenericSerialization(generic)) { // generic=nativejava
                     try {
                         UnsafeByteArrayOutputStream os = new UnsafeByteArrayOutputStream(512);
                         ExtensionLoader.getExtensionLoader(Serialization.class)
@@ -124,9 +132,9 @@ public class GenericFilter implements Filter {
                     } catch (IOException e) {
                         throw new RpcException("Serialize result failed.", e);
                     }
-                } else if (ProtocolUtils.isBeanGenericSerialization(generic)) {
+                } else if (ProtocolUtils.isBeanGenericSerialization(generic)) { // generic=bean
                     return new RpcResult(JavaBeanSerializeUtil.serialize(result.getValue(), JavaBeanAccessor.METHOD));
-                } else {
+                } else { // generic=true
                     return new RpcResult(PojoUtils.generalize(result.getValue()));
                 }
             } catch (NoSuchMethodException e) {
