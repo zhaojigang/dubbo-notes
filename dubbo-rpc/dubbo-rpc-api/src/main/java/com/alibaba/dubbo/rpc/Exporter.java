@@ -18,7 +18,7 @@ package com.alibaba.dubbo.rpc;
 
 /**
  * Exporter. (API/SPI, Prototype, ThreadSafe)
- *
+ * 用于管理 Invoker 的生命周期
  * @see com.alibaba.dubbo.rpc.Protocol#export(Invoker)
  * @see com.alibaba.dubbo.rpc.ExporterListener
  * @see com.alibaba.dubbo.rpc.protocol.AbstractExporter
@@ -33,7 +33,7 @@ public interface Exporter<T> {
     Invoker<T> getInvoker();
 
     /**
-     * unexport.
+     * unexport. 销毁 Invoker
      * <p>
      * <code>
      * getInvoker().destroy();
