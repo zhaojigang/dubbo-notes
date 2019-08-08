@@ -26,9 +26,15 @@ import java.util.Map;
  * DubboExporter
  */
 public class DubboExporter<T> extends AbstractExporter<T> {
-
+    /**
+     * serviceKey: group/path:version:port
+     */
     private final String key;
 
+    /**
+     * key: serviceKey
+     * value: 具体的 Exporter 实例，eg. DubboExporter
+     */
     private final Map<String, Exporter<?>> exporterMap;
 
     public DubboExporter(Invoker<T> invoker, String key, Map<String, Exporter<?>> exporterMap) {

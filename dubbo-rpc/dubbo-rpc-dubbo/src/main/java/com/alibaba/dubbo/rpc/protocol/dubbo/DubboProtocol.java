@@ -250,9 +250,11 @@ public class DubboProtocol extends AbstractProtocol {
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         URL url = invoker.getUrl();
 
-        // export service.
+        // 获取 serviceKey：group/path:version:port
         String key = serviceKey(url);
+        // 将 invoker 存储到 DubboExporter 中，并且让 DubboExporter 持有 AbstractProtocol#exporterMap 的对象引用（后续 DubboExporter 在做销毁操作时，会主动从该 exporterMap 中删除对象，做到逻辑高内聚）
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
+        // 将 {serviceKey:具体的Exporter} 存储到 AbstractProtocol#exporterMap 中，当请求到来时，来这里根据 serviceKey 获取 Exporter
         exporterMap.put(key, exporter);
 
         //export an stub service for dispatching event
@@ -269,7 +271,7 @@ public class DubboProtocol extends AbstractProtocol {
                 stubServiceMethodsMap.put(url.getServiceKey(), stubServiceMethods);
             }
         }
-
+        // 开启 netty 服务
         openServer(url);
         optimizeSerialization(url);
         return exporter;
