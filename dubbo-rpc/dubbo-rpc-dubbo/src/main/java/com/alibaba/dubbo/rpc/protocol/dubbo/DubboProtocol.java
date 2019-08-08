@@ -70,6 +70,9 @@ public class DubboProtocol extends AbstractProtocol {
     //consumer side export a stub service for dispatching event
     //servicekey-stubmethods
     private final ConcurrentMap<String, String> stubServiceMethodsMap = new ConcurrentHashMap<String, String>();
+    /**
+     * 真正的 netty 请求处理器
+     */
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
         @Override
@@ -189,9 +192,23 @@ public class DubboProtocol extends AbstractProtocol {
                         .equals(NetUtils.filterLocalHost(address.getAddress().getHostAddress()));
     }
 
+    /**
+     * 当请求到来时，找到真正要处理请求的那个Invoker
+     * 1. 首先根据请求参数 Channel channel, Invocation inv 组装 serviceKey=group/path:version:port
+     * 2. 根据 serviceKey 从 ExporterMap 中获取 Exporter
+     * 3. 从Exporter 中获取 Invoker
+     * @param channel 用于获取 port
+     * @param inv 用于获取 path、version、group
+     * @return
+     * @throws RemotingException
+     */
     Invoker<?> getInvoker(Channel channel, Invocation inv) throws RemotingException {
         boolean isCallBackServiceInvoke = false;
         boolean isStubServiceInvoke = false;
+        /**
+         * 1. 根据请求参数 Channel channel, Invocation inv 组装 serviceKey=group/path:version:port
+         *    port 从 Channel 中获取；path、version、group 从 Invocation 中获取
+         */
         int port = channel.getLocalAddress().getPort();
         String path = inv.getAttachments().get(Constants.PATH_KEY);
         // if it's callback service on client side
@@ -205,13 +222,18 @@ public class DubboProtocol extends AbstractProtocol {
             path = inv.getAttachments().get(Constants.PATH_KEY) + "." + inv.getAttachments().get(Constants.CALLBACK_SERVICE_KEY);
             inv.getAttachments().put(IS_CALLBACK_SERVICE_INVOKE, Boolean.TRUE.toString());
         }
+        // group/path:version:port
         String serviceKey = serviceKey(port, path, inv.getAttachments().get(Constants.VERSION_KEY), inv.getAttachments().get(Constants.GROUP_KEY));
-
+        /**
+         * 2. 从 exporterMap 中获取 Exporter
+         */
         DubboExporter<?> exporter = (DubboExporter<?>) exporterMap.get(serviceKey);
 
         if (exporter == null)
             throw new RemotingException(channel, "Not found exported service: " + serviceKey + " in " + exporterMap.keySet() + ", may be version or group mismatch " + ", channel: consumer: " + channel.getRemoteAddress() + " --> provider: " + channel.getLocalAddress() + ", message:" + inv);
-
+        /**
+         * 3. 从Exporter 中获取 Invoker
+         */
         return exporter.getInvoker();
     }
 

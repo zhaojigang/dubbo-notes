@@ -46,7 +46,7 @@ public interface Protocol {
      * 2. export() must be idempotent, that is, there's no difference between invoking once and invoking twice when
      * export the same URL<br>
      *
-     * export()传入的Invoker由框架实现并传入，协议不需要关心
+     * export()传入的Invoker由框架实现并传入，协议不需要关心(Exporter只是用于管理Invoker的生命周期)
      * 3. Invoker instance is passed in by the framework, protocol needs not to care <br>
      *
      * @param <T>     Service type     服务的类型

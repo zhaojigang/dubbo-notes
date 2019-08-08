@@ -38,6 +38,7 @@ public abstract class AbstractProtocol implements Protocol {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<String, Exporter<?>>();
 
     //TODO SOFEREFENCE
@@ -55,6 +56,9 @@ public abstract class AbstractProtocol implements Protocol {
 
     @Override
     public void destroy() {
+        /**
+         * 1. 销毁所有 Invoker
+         */
         for (Invoker<?> invoker : invokers) {
             if (invoker != null) {
                 invokers.remove(invoker);
@@ -68,6 +72,9 @@ public abstract class AbstractProtocol implements Protocol {
                 }
             }
         }
+        /**
+         * 2. 销毁所有 Exporter
+         */
         for (String key : new ArrayList<String>(exporterMap.keySet())) {
             Exporter<?> exporter = exporterMap.remove(key);
             if (exporter != null) {
