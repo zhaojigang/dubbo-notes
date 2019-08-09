@@ -41,7 +41,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * DubboInvoker
  */
 public class DubboInvoker<T> extends AbstractInvoker<T> {
-
+    /**
+     * netty 客户端的包装体
+     */
     private final ExchangeClient[] clients;
 
     private final AtomicPositiveInteger index = new AtomicPositiveInteger();
@@ -64,6 +66,11 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         this.invokers = invokers;
     }
 
+    /**
+     * 处理
+     * 1、获取调用客户端 ExchangeClient
+     * 2、区分单向、异步、同步调用，再使用获取到的 ExchangeClient 发起调用
+     */
     @Override
     protected Result doInvoke(final Invocation invocation) throws Throwable {
         RpcInvocation inv = (RpcInvocation) invocation;

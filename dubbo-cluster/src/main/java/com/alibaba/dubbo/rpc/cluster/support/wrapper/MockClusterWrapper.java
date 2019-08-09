@@ -26,7 +26,9 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
  *
  */
 public class MockClusterWrapper implements Cluster {
-
+    /**
+     * 具体的 Cluster 对象，eg. FailoverCluster
+     */
     private Cluster cluster;
 
     public MockClusterWrapper(Cluster cluster) {

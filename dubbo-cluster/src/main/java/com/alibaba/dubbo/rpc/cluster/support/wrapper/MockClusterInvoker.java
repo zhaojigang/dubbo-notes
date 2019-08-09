@@ -33,11 +33,16 @@ import com.alibaba.dubbo.rpc.support.MockInvoker;
 import java.util.List;
 
 public class MockClusterInvoker<T> implements Invoker<T> {
-
     private static final Logger logger = LoggerFactory.getLogger(MockClusterInvoker.class);
 
+    /**
+     * 调用目录：
+     * 最重要的属性 Map<String, List<Invoker<T>>> methodInvokerMap，List<Invoker<T>> list(Invocation invocation)
+     */
     private final Directory<T> directory;
-
+    /**
+     * 具体的 Invoker，eg. FailoverClusterInvoker
+     */
     private final Invoker<T> invoker;
 
     public MockClusterInvoker(Directory<T> directory, Invoker<T> invoker) {
@@ -68,10 +73,10 @@ public class MockClusterInvoker<T> implements Invoker<T> {
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
-
+        // 1. 查看 mock=xxx 参数
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), Constants.MOCK_KEY, Boolean.FALSE.toString()).trim();
         if (value.length() == 0 || value.equalsIgnoreCase("false")) {
-            //no mock
+            //no mock，直接调用
             result = this.invoker.invoke(invocation);
         } else if (value.startsWith("force")) {
             if (logger.isWarnEnabled()) {

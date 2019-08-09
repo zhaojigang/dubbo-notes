@@ -39,7 +39,7 @@ public abstract class AbstractProtocol implements Protocol {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
-     * key: serviceKey
+     * key: serviceKey  group/path:version:port
      * value: 具体的 Exporter 实例，eg. DubboExporter
      */
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<String, Exporter<?>>();

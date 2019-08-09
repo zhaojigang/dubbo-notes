@@ -22,4 +22,5 @@ class DubboProtocol extends AbstractProtocol {
     - ExchangeHandler requestHandler // 真正的Netty请求处理器
     ~ Invoker<?> getInvoker(Channel channel, Invocation inv)
 }
+
 @enduml

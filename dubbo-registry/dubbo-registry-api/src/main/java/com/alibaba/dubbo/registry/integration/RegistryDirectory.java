@@ -67,13 +67,13 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     private static final ConfiguratorFactory configuratorFactory = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).getAdaptiveExtension();
     private final String serviceKey; // Initialization at construction time, assertion not null
-    private final Class<T> serviceType; // Initialization at construction time, assertion not null
+    private final Class<T> serviceType; // 接口名：interface com.alibaba.dubbo.demo.DemoService
     private final Map<String, String> queryMap; // Initialization at construction time, assertion not null
     private final URL directoryUrl; // Initialization at construction time, assertion not null, and always assign non null value
     private final String[] serviceMethods;
     private final boolean multiGroup;
     private Protocol protocol; // Initialization at the time of injection, the assertion is not null
-    private Registry registry; // Initialization at the time of injection, the assertion is not null
+    private Registry registry; // 注册中心实例，调用 subscribe 进行真正的订阅操作
     private volatile boolean forbidden = false;
 
     private volatile URL overrideDirectoryUrl; // Initialization at construction time, assertion not null, and always assign non null value
@@ -104,7 +104,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         if (url.getServiceKey() == null || url.getServiceKey().length() == 0)
             throw new IllegalArgumentException("registry serviceKey is null.");
         this.serviceType = serviceType;
-        this.serviceKey = url.getServiceKey();
+        this.serviceKey = url.getServiceKey(); // path/{group}:{version}
         this.queryMap = StringUtils.parseQueryString(url.getParameterAndDecoded(Constants.REFER_KEY));
         this.overrideDirectoryUrl = this.directoryUrl = url.setPath(url.getServiceInterface()).clearParameters().addParameters(queryMap).removeParameter(Constants.MONITOR_KEY);
         String group = directoryUrl.getParameter(Constants.GROUP_KEY, "");
@@ -251,7 +251,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 this.overrideDirectoryUrl = configurator.configure(overrideDirectoryUrl);
             }
         }
-        // providers
+        // 只针对 providers 进行调用
         refreshInvoker(invokerUrls);
     }
 
@@ -282,8 +282,8 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             if (invokerUrls.isEmpty()) {
                 return;
             }
-            Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
-            Map<String, List<Invoker<T>>> newMethodInvokerMap = toMethodInvokers(newUrlInvokerMap); // Change method name to map Invoker Map
+            Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map => 将url转换为InvokerDelegate
+            Map<String, List<Invoker<T>>> newMethodInvokerMap = toMethodInvokers(newUrlInvokerMap); // Change method name to map Invoker Map => 构造{"sayHello":InvokerDelegate}这样的键值对
             // state change
             // If the calculation is wrong, it is not processed.
             if (newUrlInvokerMap == null || newUrlInvokerMap.size() == 0) {
@@ -498,6 +498,10 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         List<Invoker<T>> invokersList = new ArrayList<Invoker<T>>();
         if (invokersMap != null && invokersMap.size() > 0) {
             for (Invoker<T> invoker : invokersMap.values()) {
+                // 1. 获取 provider 的所有方法 methods=xxx,yyy,zzz
+                // （同一个接口的不同 provider 的 methods 参数可能不同，例如 DemoService#sayHello() 在 providerA 中有，后续添加了 DemoService#sayBye() 之后，部署到了 providerB，
+                // 此时 providerA 还没部署，这一时刻，进行的服务发现根据 serviceKey 会发现 providerA 和 providerB，但是二者所拥有的方法却是不同的，那么经过如下逻辑后，
+                // newMethodInvokerMap={"sayHello":[A,B], "sayBye":[B]}）
                 String parameter = invoker.getUrl().getParameter(Constants.METHODS_KEY);
                 if (parameter != null && parameter.length() > 0) {
                     String[] methods = Constants.COMMA_SPLIT_PATTERN.split(parameter);
@@ -519,6 +523,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             }
         }
         List<Invoker<T>> newInvokersList = route(invokersList, null);
+        // newMethodInvokerMap={"sayHello":[A,B], "sayBye":[B], "*":[router过滤后的provider]}
         newMethodInvokerMap.put(Constants.ANY_VALUE, newInvokersList);
         if (serviceMethods != null && serviceMethods.length > 0) {
             for (String method : serviceMethods) {
@@ -619,13 +624,13 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 invokers = localMethodInvokerMap.get(methodName + "." + args[0]); // The routing can be enumerated according to the first parameter
             }
             if (invokers == null) {
-                invokers = localMethodInvokerMap.get(methodName);
+                invokers = localMethodInvokerMap.get(methodName); // 从 {"sayHello":InvokerDelegate实例} 中根据 methodName（"sayHello"）获取InvokerDelegate实例
             }
             if (invokers == null) {
-                invokers = localMethodInvokerMap.get(Constants.ANY_VALUE);
+                invokers = localMethodInvokerMap.get(Constants.ANY_VALUE); // 根据 key=* 进行获取 List<Invoker>
             }
             if (invokers == null) {
-                Iterator<List<Invoker<T>>> iterator = localMethodInvokerMap.values().iterator();
+                Iterator<List<Invoker<T>>> iterator = localMethodInvokerMap.values().iterator(); // 遍历获取一个 List<Invoker>
                 if (iterator.hasNext()) {
                     invokers = iterator.next();
                 }
