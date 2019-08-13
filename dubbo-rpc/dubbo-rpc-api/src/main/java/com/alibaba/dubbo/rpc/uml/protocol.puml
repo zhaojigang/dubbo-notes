@@ -7,8 +7,17 @@ interface Protocol {
 }
 
 abstract class AbstractProtocol implements Protocol {
-    # Map<String, Exporter<?>> exporterMap
+    # Map<String, Exporter<?>> exporterMap // <group/path:version:port, DubboExporter>
     # static String serviceKey(URL url)
+}
+
+class RegistryProtocol implements Protocol {
+    - Protocol protocol // 具体的 Protocol
+    + <T> Exporter<T> export(Invoker<T> originInvoker)
+    - Registry getRegistry(final Invoker<?> originInvoker)
+    + void register(URL registryUrl, URL registedProviderUrl)
+    + <T> Invoker<T> refer(Class<T> type, URL url)
+    - <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url)
 }
 
 class InjvmProtocol extends AbstractProtocol {
@@ -17,10 +26,15 @@ class InjvmProtocol extends AbstractProtocol {
 }
 
 class DubboProtocol extends AbstractProtocol {
-    - Map<String, ExchangeServer> serverMap
-    - Map<String, ReferenceCountExchangeClient> referenceClientMap
+    - Map<String, ExchangeServer> serverMap // <host:port,nettyServer>
+    - Map<String, ReferenceCountExchangeClient> referenceClientMap // <host:port,nettyClient>
     - ExchangeHandler requestHandler // 真正的Netty请求处理器
-    ~ Invoker<?> getInvoker(Channel channel, Invocation inv)
+    ~ Invoker<?> getInvoker(Channel channel, Invocation inv) // 根据请求参数查找Invoker
+    + Exporter<T> export(Invoker<T> invoker)
+    - void openServer(URL url) // 开启nettyServer
+    + <T> Invoker<T> refer(Class<T> serviceType, URL url)
+    - ExchangeClient[] getClients(URL url) // 创建nettyClient
+    + void destroy()
 }
 
 @enduml

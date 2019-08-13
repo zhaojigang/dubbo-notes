@@ -1,25 +1,21 @@
 @startuml
 
-interface Protocol {
-    + <T> Exporter<T> export(Invoker<T> invoker)
-    + Invoker<T> refer(Class<T> type, URL url)
-    + void destroy()
+interface Exporter<T> {
+    + Invoker<T> getInvoker()
+    + void unexport()
 }
 
-abstract class AbstractProtocol implements Protocol {
-    # Map<String, Exporter<?>> exporterMap
-    # static String serviceKey(URL url)
+abstract class AbstractExporter<T> implements Exporter {
+    - Invoker<T> invoker
+    + Invoker<T> getInvoker()
+    + void unexport()
 }
 
-class InjvmProtocol extends AbstractProtocol {
-    + <T> Exporter<T> export(Invoker<T> invoker) // new InjvmExporter<T>
-    + <T> Invoker<T> refer(Class<T> serviceType, URL url) // new InjvmInvoker<T>
+class InjvmExporter<T> extends AbstractExporter {
+    + void unexport()
 }
 
-class DubboProtocol extends AbstractProtocol {
-    - Map<String, ExchangeServer> serverMap
-    - Map<String, ReferenceCountExchangeClient> referenceClientMap
-    - ExchangeHandler requestHandler // 真正的Netty请求处理器
-    ~ Invoker<?> getInvoker(Channel channel, Invocation inv)
+class DubboExporter<T> extends AbstractExporter {
+    + void unexport()
 }
 @enduml

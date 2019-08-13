@@ -1,25 +1,55 @@
 @startuml
 
-interface Protocol {
-    + <T> Exporter<T> export(Invoker<T> invoker)
-    + Invoker<T> refer(Class<T> type, URL url)
-    + void destroy()
+interface Invoker<T> {
+    + Class<T> getInterface()
+    + Result invoke(Invocation invocation)
 }
 
-abstract class AbstractProtocol implements Protocol {
-    # Map<String, Exporter<?>> exporterMap
-    # static String serviceKey(URL url)
+abstract class AbstractProxyInvoker<T> implements Invoker {
+    // JavassistProxyFactory会创建AbstractProxyInvoker的匿名内部类
+    - T proxy //真实对象ref
+    - Class<T> type //接口
+    + Result invoke(Invocation invocation)
+    # abstract Object doInvoke(...)
 }
 
-class InjvmProtocol extends AbstractProtocol {
-    + <T> Exporter<T> export(Invoker<T> invoker) // new InjvmExporter<T>
-    + <T> Invoker<T> refer(Class<T> serviceType, URL url) // new InjvmInvoker<T>
+abstract class AbstractInvoker<T> implements Invoker {
+    - Class<T> type //接口
+    - URL url
+    + Result invoke(Invocation inv)
+    # abstract Result doInvoke(Invocation invocation)
 }
 
-class DubboProtocol extends AbstractProtocol {
-    - Map<String, ExchangeServer> serverMap
-    - Map<String, ReferenceCountExchangeClient> referenceClientMap
-    - ExchangeHandler requestHandler // 真正的Netty请求处理器
-    ~ Invoker<?> getInvoker(Channel channel, Invocation inv)
+class DubboInvoker<T> extends AbstractInvoker {
+    - ExchangeClient[] clients
+    # Result doInvoke(Invocation invocation) // 使用nettyClient发起调用
+}
+
+class InjvmInvoker<T> extends AbstractInvoker {
+}
+
+abstract class AbstractClusterInvoker<T> implements Invoker {
+    # Directory<T> directory
+    + Result invoke(Invocation invocation)
+    # abstract Result doInvoke(...)
+    # List<Invoker<T>> list(Invocation invocation) // 使用 directory 进行选择
+    # Invoker<T> select(...) // 使用 loadbalance 进行选择
+    - Invoker<T> doSelect(...)
+}
+
+class FailoverClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class FailfastClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class MockClusterInvoker<T> implements Invoker {
+    - Directory<T> directory
+    - Invoker<T> invoker // 具体的Invoker,默认是FailoverClusterInvoker
+    + Result invoke(Invocation invocation)
+    - Result doMockInvoke(...)
+    - List<Invoker<T>> selectMockInvoker(Invocation invocation)
 }
 @enduml
