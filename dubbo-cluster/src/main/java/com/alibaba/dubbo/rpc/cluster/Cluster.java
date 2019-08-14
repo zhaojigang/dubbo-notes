@@ -29,18 +29,14 @@ import com.alibaba.dubbo.rpc.cluster.support.FailoverCluster;
  * <a href="http://en.wikipedia.org/wiki/Fault-tolerant_system">Fault-Tolerant</a>
  *
  */
-@SPI(FailoverCluster.NAME)
+@SPI(FailoverCluster.NAME) // 默认 FailoverCluster
 public interface Cluster {
-
     /**
-     * Merge the directory invokers to a virtual invoker.
+     * 创建 ClusterInvoker，该 ClusterInvoker 持有 Directory 实例。
+     * 实际上就是将 Directory 中的多个 Invoker 封装成了一个 Invoker（ClusterInvoker）。
      *
-     * @param <T>
-     * @param directory
-     * @return cluster invoker
-     * @throws RpcException
+     * Cluster 是 ClusterInvoker 的抽象工厂。
      */
     @Adaptive
     <T> Invoker<T> join(Directory<T> directory) throws RpcException;
-
 }
