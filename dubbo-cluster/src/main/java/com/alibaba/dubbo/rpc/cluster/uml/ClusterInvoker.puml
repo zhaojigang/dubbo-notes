@@ -1,0 +1,54 @@
+@startuml
+
+abstract class AbstractClusterInvoker<T> implements Invoker {
+    # Directory<T> directory
+    + Result invoke(Invocation invocation)
+    # abstract Result doInvoke(...)
+    # List<Invoker<T>> list(Invocation invocation)
+    # Invoker<T> select(...)
+    - Invoker<T> doSelect(...)
+
+}
+
+class MockClusterInvoker<T> implements Invoker {
+    - Directory<T> directory
+    - Invoker<T> invoker // 被包装的Invoker，eg. FailoverClusterInvoker
+    + Result invoke(Invocation invocation)
+    - Result doMockInvoke(Invocation invocation, RpcException e)
+    - List<Invoker<T>> selectMockInvoker(Invocation invocation)
+}
+
+class MergeableClusterInvoker<T> implements Invoker {
+    - Directory<T> directory
+    + Result invoke(Invocation invocation)
+}
+
+class FailoverClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class FailfastClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class FailbackClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class FailsafeClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class ForkingClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class BroadcastClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+class AvailableClusterInvoker<T> extends AbstractClusterInvoker {
+    + Result doInvoke(...)
+}
+
+@enduml

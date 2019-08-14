@@ -1,33 +1,52 @@
 @startuml
 
-interface Cluster{
+interface Cluster {
+    + <T> Invoker<T> join(Directory<T> directory)
+}
+
+class MockClusterWrapper implements Cluster {
+    - Cluster cluster // 被包装的Cluster，eg. FailoverCluster
+    + <T> Invoker<T> join(Directory<T> directory)
+}
+
+class FailoverCluster implements Cluster {
+    + static String NAME = "failover"
+    + <T> Invoker<T> join(Directory<T> directory)
+}
+
+class FailfastCluster implements Cluster {
+    + static String NAME = "failfast"
+    + <T> Invoker<T> join(Directory<T> directory)
+}
+
+class FailbackCluster implements Cluster {
+    + static String NAME = "failback"
+    + <T> Invoker<T> join(Directory<T> directory)
+}
+
+class FailsafeCluster implements Cluster {
+    + static String NAME = "failsafe"
     + <T> Invoker<T> join(Directory<T> directory)
 }
 
 class AvailableCluster implements Cluster {
+    + static String NAME = "available"
+    + <T> Invoker<T> join(Directory<T> directory)
 }
 
-class FailfastCluster implements Cluster {
+class ForkingCluster implements Cluster {
+    + static String NAME = "forking"
+    + <T> Invoker<T> join(Directory<T> directory)
 }
 
-class FailoverCluster implements Cluster {
+class MergeableCluster implements Cluster {
+    + static String NAME = "mergeable"
+    + <T> Invoker<T> join(Directory<T> directory)
 }
 
-class MockClusterWrapper implements Cluster {
+class BroadcastCluster implements Cluster {
+    + static String NAME = "broadcast"
+    + <T> Invoker<T> join(Directory<T> directory)
 }
-
-
-abstract class AbstractClusterInvoker<T> implements Invoker
-class FailfastClusterInvoker<T> extends AbstractClusterInvoker
-class FailoverClusterInvoker<T> extends AbstractClusterInvoker
-class MockClusterInvoker<T> implements Invoker
-
-
-
-AvailableCluster *-- AbstractClusterInvoker
-FailfastCluster *-- FailfastClusterInvoker
-FailoverCluster *-- FailoverClusterInvoker
-MockClusterWrapper *-- MockClusterInvoker
-
 
 @enduml
