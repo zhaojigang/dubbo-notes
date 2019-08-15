@@ -44,11 +44,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
     /**
-     * Use {@link NamedInternalThreadFactory} to produce {@link com.alibaba.dubbo.common.threadlocal.InternalThread}
-     * which with the use of {@link com.alibaba.dubbo.common.threadlocal.InternalThreadLocal} in {@link RpcContext}.
+     * 异步线程池
      */
-    private final ExecutorService executor = Executors.newCachedThreadPool(
-            new NamedInternalThreadFactory("forking-cluster-timer", true));
+    private final ExecutorService executor = Executors.newCachedThreadPool(new NamedInternalThreadFactory("forking-cluster-timer", true));
 
     public ForkingClusterInvoker(Directory<T> directory) {
         super(directory);
@@ -59,15 +57,18 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
     public Result doInvoke(final Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         try {
             checkInvokers(invokers, invocation);
-            final List<Invoker<T>> selected;
-            final int forks = getUrl().getParameter(Constants.FORKS_KEY, Constants.DEFAULT_FORKS);
-            final int timeout = getUrl().getParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
+            final List<Invoker<T>> selected; // 选择多少个Invoker进行调用
+            // <dubbo:consumer cluster="forking" forks="3" timeout="5000"/>
+            // <dubbo:reference id="demoService" interface="com.alibaba.dubbo.demo.DemoService" cluster="forking" forks="3" timeout="5000"/>
+            // 其中的 forks 和 timeout 参数就是这里的参数
+            final int forks = getUrl().getParameter(Constants.FORKS_KEY, Constants.DEFAULT_FORKS); // forks=2
+            final int timeout = getUrl().getParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT); // timeout=1000
             if (forks <= 0 || forks >= invokers.size()) {
-                selected = invokers;
+                selected = invokers; // 选择全部Invoker进行调用
             } else {
                 selected = new ArrayList<Invoker<T>>();
+                // 1. 多次调用父类 AbstractClusterInvoker 的选择机制进行 Invoker 的选择，并添加到 List<Invoker<T>> selected 中
                 for (int i = 0; i < forks; i++) {
-                    // TODO. Add some comment here, refer chinese version for more details.
                     Invoker<T> invoker = select(loadbalance, invocation, invokers, selected);
                     if (!selected.contains(invoker)) {//Avoid add the same invoker several times.
                         selected.add(invoker);
@@ -82,10 +83,12 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
                     @Override
                     public void run() {
                         try {
+                            // 2. 使用线程池并行发起多次调用，并将调用结果存储到ref阻塞队列中；如果全部调用都失败了，则将失败异常也存储到ref中
                             Result result = invoker.invoke(invocation);
                             ref.offer(result);
                         } catch (Throwable e) {
                             int value = count.incrementAndGet();
+                            // 全部调用都失败了
                             if (value >= selected.size()) {
                                 ref.offer(e);
                             }
@@ -94,6 +97,7 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 });
             }
             try {
+                // 3. 主线程从阻塞队列弹出第一个对象（阻塞等待1s，即1s内如果调用无法完成，抛出timeout异常；如果1s内有任一个调用返回，则直接处理），如果得到的是异常，则直接抛出，否则，返回调用结果
                 Object ret = ref.poll(timeout, TimeUnit.MILLISECONDS);
                 if (ret instanceof Throwable) {
                     Throwable e = (Throwable) ret;

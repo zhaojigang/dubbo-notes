@@ -33,18 +33,11 @@ import java.util.List;
  *
  * @see com.alibaba.dubbo.rpc.cluster.Cluster#join(Directory)
  */
-@SPI(RandomLoadBalance.NAME)
+@SPI(RandomLoadBalance.NAME) // 默认是 random=RandomLoadBalance
 public interface LoadBalance {
-
     /**
-     * select one invoker in list.
-     *
-     * @param invokers   invokers.
-     * @param url        refer url
-     * @param invocation invocation.
-     * @return selected invoker.
+     * 从 List<Invoker> 中选择一个 Invoker
      */
     @Adaptive("loadbalance")
     <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException;
-
 }

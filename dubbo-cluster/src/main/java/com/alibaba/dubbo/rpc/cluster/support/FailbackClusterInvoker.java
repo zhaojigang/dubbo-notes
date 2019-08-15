@@ -52,12 +52,13 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
     private static final long RETRY_FAILED_PERIOD = 5 * 1000;
 
     /**
-     * Use {@link NamedInternalThreadFactory} to produce {@link com.alibaba.dubbo.common.threadlocal.InternalThread}
-     * which with the use of {@link com.alibaba.dubbo.common.threadlocal.InternalThreadLocal} in {@link RpcContext}.
+     * 重试线程池
      */
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2,
             new NamedInternalThreadFactory("failback-cluster-timer", true));
-
+    /**
+     * 调用失败列表
+     */
     private final ConcurrentMap<Invocation, AbstractClusterInvoker<?>> failed = new ConcurrentHashMap<Invocation, AbstractClusterInvoker<?>>();
     private volatile ScheduledFuture<?> retryFuture;
 
@@ -66,6 +67,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
     }
 
     private void addFailed(Invocation invocation, AbstractClusterInvoker<?> router) {
+        // 1. 双重检测创建并启动定时重试任务
         if (retryFuture == null) {
             synchronized (this) {
                 if (retryFuture == null) {
@@ -84,6 +86,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 }
             }
         }
+        // 2. 将失败的调用加入到失败列表中
         failed.put(invocation, router);
     }
 
@@ -96,6 +99,7 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
             Invocation invocation = entry.getKey();
             Invoker<?> invoker = entry.getValue();
             try {
+                // 对于失败的 Invoker，进行重试：如果重试成功，则从失败列表中删除，否则，记录error日志，下一个5s继续重试（如果一直失败，会一直重试）
                 invoker.invoke(invocation);
                 failed.remove(invocation);
             } catch (Throwable e) {
@@ -108,11 +112,14 @@ public class FailbackClusterInvoker<T> extends AbstractClusterInvoker<T> {
     protected Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         try {
             checkInvokers(invokers, invocation);
+            // 1. 调用父类 AbstractClusterInvoker 的选择机制进行选择
             Invoker<T> invoker = select(loadbalance, invocation, invokers, null);
+            // 2. 发起 rpc 调用，如果失败，添加到失败列表，后续进行定时重试。返回空 RpcResult
             return invoker.invoke(invocation);
         } catch (Throwable e) {
             logger.error("Failback to invoke method " + invocation.getMethodName() + ", wait for retry in background. Ignored exception: "
                     + e.getMessage() + ", ", e);
+            // 如果失败，添加到失败列表，后续进行定时重试
             addFailed(invocation, this);
             return new RpcResult(); // ignore
         }

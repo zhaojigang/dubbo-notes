@@ -1210,7 +1210,7 @@ public final class URL implements Serializable {
     }
 
     /**
-     * path/{group}:{version}
+     * interface/{group}:{version}
      * @return
      */
     public String getServiceKey() {

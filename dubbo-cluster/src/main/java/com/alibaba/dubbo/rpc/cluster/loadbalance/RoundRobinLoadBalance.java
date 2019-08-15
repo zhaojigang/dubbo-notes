@@ -88,6 +88,9 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
     
     @Override
     protected <T> Invoker<T> doSelect(List<Invoker<T>> invokers, URL url, Invocation invocation) {
+        // 1. 初始化缓存 Map<String, Map<String, WeightedRoundRobin>> methodWeightMap
+        // 外层 key：interface/{group}:{version}.methodName,
+        // 内层 key：
         String key = invokers.get(0).getUrl().getServiceKey() + "." + invocation.getMethodName();
         ConcurrentMap<String, WeightedRoundRobin> map = methodWeightMap.get(key);
         if (map == null) {

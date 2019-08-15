@@ -110,8 +110,11 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
 
     @Override
     public boolean isAvailable() {
-        if (!super.isAvailable())
+        // AbstractInvoker：Invoker 没有被 destroy，则可用
+        if (!super.isAvailable()) {
             return false;
+        }
+        // 只要有一个 NettyClient 处于已连接状态 && 不是只读，则可用
         for (ExchangeClient client : clients) {
             if (client.isConnected() && !client.hasAttribute(Constants.CHANNEL_ATTRIBUTE_READONLY_KEY)) {
                 //cannot write == not Available ?
