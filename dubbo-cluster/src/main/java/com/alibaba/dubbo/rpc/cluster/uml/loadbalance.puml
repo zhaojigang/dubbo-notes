@@ -18,12 +18,13 @@ class RoundRobinLoadBalance extends AbstractLoadBalance {
     # <T> Invoker<T> doSelect(...)
 }
 
+class LeastActiveLoadBalance extends AbstractLoadBalance {
+    # <T> Invoker<T> doSelect(...)
+}
+
 class ConsistentHashLoadBalance extends AbstractLoadBalance {
     # <T> Invoker<T> doSelect(...)
 }
 
-class LeastActiveLoadBalance extends AbstractLoadBalance {
-    # <T> Invoker<T> doSelect(...)
-}
 
 @enduml

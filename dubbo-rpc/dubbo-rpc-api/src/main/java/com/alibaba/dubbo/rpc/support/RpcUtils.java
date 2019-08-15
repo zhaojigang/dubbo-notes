@@ -108,12 +108,14 @@ public class RpcUtils {
     }
 
     public static String getMethodName(Invocation invocation) {
+        // 泛化调用：第一个参数是方法名
         if (Constants.$INVOKE.equals(invocation.getMethodName())
                 && invocation.getArguments() != null
                 && invocation.getArguments().length > 0
                 && invocation.getArguments()[0] instanceof String) {
             return (String) invocation.getArguments()[0];
         }
+        // 非泛化调用：直接获取方法名
         return invocation.getMethodName();
     }
 

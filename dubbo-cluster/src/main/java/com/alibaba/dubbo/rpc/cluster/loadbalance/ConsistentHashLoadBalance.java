@@ -42,7 +42,9 @@ public class ConsistentHashLoadBalance extends AbstractLoadBalance {
     @SuppressWarnings("unchecked")
     @Override
     protected <T> Invoker<T> doSelect(List<Invoker<T>> invokers, URL url, Invocation invocation) {
+        // 1. 获取方法名
         String methodName = RpcUtils.getMethodName(invocation);
+        // 2. 组装key：serviceKey.methodName，
         String key = invokers.get(0).getUrl().getServiceKey() + "." + methodName;
         int identityHashCode = System.identityHashCode(invokers);
         ConsistentHashSelector<T> selector = (ConsistentHashSelector<T>) selectors.get(key);
